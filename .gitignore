@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/AlexAPI
+/AlexAPI/bin/Debug/net8.0
+/AlexAPI/obj
+/AlexAPI/AlexAPI.csproj.user
