@@ -15,14 +15,16 @@ namespace AlexAPI.Controllers
         private readonly IConfiguration configuration;
         private readonly ILogger<YachtController> logger;
         private readonly YachtWorkUnit workUnit;
-        private readonly IGeminiAIService openAI;
+        private readonly IGeminiAIService geminiAI;
+        private readonly ILlamaService llamaAI;
 
-        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, IGeminiAIService openAI)
+        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, IGeminiAIService geminiAI, ILlamaService llamaAI)
         {
             this.logger = logger;
             this.configuration = configuration;
             this.workUnit = workUnit;
-            this.openAI = openAI;
+            this.geminiAI = geminiAI;
+            this.llamaAI = llamaAI;
         }
 
         [HttpGet]
@@ -134,9 +136,9 @@ namespace AlexAPI.Controllers
         public async Task<IActionResult> GetYachtToys(Guid id)
         {
             var yacht = workUnit.YachtRepository.GetByID(id);
-            var result1 = await openAI.GetResponseAsync($"Can you create a description of the available toys of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Toys}");
-            var result2 = await openAI.GetResponseAsync($"Can you convert this markdown into a html div: \n{result1}");
-            return Ok(result2.Replace("```html", "").Replace("```", ""));
+            var result1 = await llamaAI.GetResponseAsync($"Can you create a description of the available toys of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Toys}");
+            //var result2 = await llamaAI.GetResponseAsync($"Can you convert this markdown into a html div: \n{result1}");
+            return Ok(result1.Replace("```html", "").Replace("```", ""));
         }
 
         [HttpGet]
@@ -144,9 +146,16 @@ namespace AlexAPI.Controllers
         public async Task<IActionResult> GetYachtEquipment(Guid id)
         {
             var yacht = workUnit.YachtRepository.GetByID(id);
-            var result1 = await openAI.GetResponseAsync($"Can you create a description of the available equipment of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Equipment}");
-            var result2 = await openAI.GetResponseAsync($"Can you convert this markdown into a html div: \n{result1}");
+            var result1 = await geminiAI.GetResponseAsync($"Can you create a description of the available equipment of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Equipment}");
+            var result2 = await geminiAI.GetResponseAsync($"Can you convert this markdown into a html div: \n{result1}");
             return Ok(result2.Replace("```html", "").Replace("```", ""));
+        }
+
+        [HttpGet]
+        [Route("OllamaTest")]
+        public async Task<IActionResult> GetOllamaResponse(string prompt)
+        {
+            return Ok(await llamaAI.GetResponseAsync(prompt));
         }
     }
 }

@@ -9,7 +9,6 @@ namespace AlexAPI.Services
     {
         private readonly HttpClient _httpClient;
         private readonly string URL;
-        private readonly GoogleCredential _credential;
 
         public GeminiAIService(IConfiguration configuration)
         {
@@ -17,7 +16,7 @@ namespace AlexAPI.Services
             _httpClient = new HttpClient();
         }
 
-        public async Task<string> GetResponseAsync(string prompt)
+        public async Task<string?> GetResponseAsync(string prompt)
         {
             var data = new
             {
@@ -42,7 +41,7 @@ namespace AlexAPI.Services
             if (response.IsSuccessStatusCode)
             {
                 var responseString = await response.Content.ReadFromJsonAsync<GeminiResponse>();
-                return responseString.Candidates.First().Content.Parts.First().Text;
+                return responseString?.Candidates.First().Content.Parts.First().Text;
             }
             else
             {

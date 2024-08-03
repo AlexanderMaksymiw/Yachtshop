@@ -2,6 +2,6 @@
 {
     public interface IGeminiAIService
     {
-        Task<string> GetResponseAsync(string prompt);
+        Task<string?> GetResponseAsync(string prompt);
     }
 }

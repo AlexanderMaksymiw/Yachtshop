@@ -14,6 +14,7 @@ namespace AlexAPI.Data.DAL
             services.AddTransient<IMailService, MailService>();
             services.AddTransient<IFileTemplateService, FileTemplateService>();
             services.AddTransient<IGeminiAIService, GeminiAIService>();
+            services.AddTransient<ILlamaService, LlamaService>();
 
             //Work Unit
             services.AddTransient<YachtWorkUnit>();
