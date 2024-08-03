@@ -132,13 +132,21 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetYachtToys")]
-        public async Task<IActionResult> GetYachtToys(Guid id)
+        [Route("GetYachtToysGemini")]
+        public async Task<IActionResult> GetYachtToysGemini(Guid id)
         {
             var yacht = workUnit.YachtRepository.GetByID(id);
-            var result1 = await llamaAI.GetResponseAsync($"Can you create a description of the available toys of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Toys}");
-            //var result2 = await llamaAI.GetResponseAsync($"Can you convert this markdown into a html div: \n{result1}");
-            return Ok(result1.Replace("```html", "").Replace("```", ""));
+            var result = await geminiAI.GetResponseAsync($"Placing the created content between '----', create a description of the available toys of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Toys}");
+            return Ok(result);
+        }
+
+        [HttpGet]
+        [Route("GetYachtToysLlama")]
+        public async Task<IActionResult> GetYachtToysLlama(Guid id)
+        {
+            var yacht = workUnit.YachtRepository.GetByID(id);
+            var result = await llamaAI.GetResponseAsync($"Create a paragraph outlining the available toys of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Toys}");
+            return Ok(result);
         }
 
         [HttpGet]
@@ -146,9 +154,8 @@ namespace AlexAPI.Controllers
         public async Task<IActionResult> GetYachtEquipment(Guid id)
         {
             var yacht = workUnit.YachtRepository.GetByID(id);
-            var result1 = await geminiAI.GetResponseAsync($"Can you create a description of the available equipment of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Equipment}");
-            var result2 = await geminiAI.GetResponseAsync($"Can you convert this markdown into a html div: \n{result1}");
-            return Ok(result2.Replace("```html", "").Replace("```", ""));
+            var result = await llamaAI.GetResponseAsync($"Create a paragraph outlining the available equipment of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Equipment}");
+            return Ok(result);
         }
 
         [HttpGet]

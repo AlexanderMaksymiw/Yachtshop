@@ -1,6 +1,7 @@
 ﻿using System.Text;
+using AlexAPI.Library.Gemini;
 using AlexAPI.Models;
-using Google.Apis.Auth.OAuth2;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace AlexAPI.Services
@@ -10,9 +11,9 @@ namespace AlexAPI.Services
         private readonly HttpClient _httpClient;
         private readonly string URL;
 
-        public GeminiAIService(IConfiguration configuration)
+        public GeminiAIService(IOptions<GeminiSettings> settings)
         {
-            URL = $"{configuration.GetValue<string>("Gemini:BaseURL")}?key={configuration.GetValue<string>("Gemini:Key")}";
+            URL = $"{settings.Value.BaseURL}?key={settings.Value.Key}";
             _httpClient = new HttpClient();
         }
 

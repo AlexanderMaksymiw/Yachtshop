@@ -1,6 +1,8 @@
 ﻿using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
 using System.Text;
+using Microsoft.Extensions.Options;
+using AlexAPI.Library.Llama;
 
 namespace AlexAPI.Services
 {
@@ -10,14 +12,14 @@ namespace AlexAPI.Services
         IChatCompletionService aiChatService;
         ChatHistory chatHistory = new ChatHistory();
 
-        public LlamaService()
+        public LlamaService(IOptions<LlamaSettings> settings)
         {
             #pragma warning disable SKEXP0010
             kernel = Kernel.CreateBuilder()
                     .AddOpenAIChatCompletion(
-                        modelId: "llama3",
-                        endpoint: new Uri("http://localhost:11434"),
-                        apiKey: "")
+                        modelId: settings.Value.Model,
+                        endpoint: new Uri(settings.Value.BaseURL),
+                        apiKey: settings.Value.Key)
                     .Build();
 
             aiChatService = kernel.GetRequiredService<IChatCompletionService>();

@@ -1,6 +1,8 @@
 ﻿using AlexAPI.Authentication;
 using AlexAPI.Data;
 using AlexAPI.Data.DAL;
+using AlexAPI.Library.Gemini;
+using AlexAPI.Library.Llama;
 using AlexAPI.Library.Mail;
 using AlexAPI.Models;
 using AlexAPI.Services;
@@ -134,6 +136,8 @@ namespace AlexAPI
             ));
 
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
+            services.Configure<GeminiSettings>(Configuration.GetSection("Gemini"));
+            services.Configure<LlamaSettings>(Configuration.GetSection("Llama"));
             services.AddInjections();
             services.AddHangfire(x => x.UseSqlServerStorage(Configuration.GetConnectionString("DatabaseConnection")));
             services.AddHangfireServer();
