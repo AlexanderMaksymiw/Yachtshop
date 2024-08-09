@@ -7,3 +7,5 @@
 /AlexAPI/obj
 /AlexAPI/AlexAPI.csproj.user
 /.vs
+/AlexAPI/bin/Release/net8.0
+/AlexAPI/Properties/PublishProfiles
