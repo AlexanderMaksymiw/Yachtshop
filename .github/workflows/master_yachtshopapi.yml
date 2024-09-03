@@ -59,4 +59,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'YachtShopAPI'
-          package: ./.net-app
+          package: '${{ github.workspace }}/myapp'
