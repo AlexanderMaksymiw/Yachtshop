@@ -48,7 +48,7 @@ jobs:
           name: .net-app
 
       - name: List contents of artifact directory for debugging
-        run: dir ./.net-app
+        run: dir 'D:\a\AlexAPI\AlexAPI\'
         
       - name: Login to Azure
         uses: azure/login@v2
