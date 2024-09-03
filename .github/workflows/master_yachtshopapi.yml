@@ -43,6 +43,12 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_056C52E189BA41D0848992F87CA586C9 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F665B239CB1049FF87C2CF96B15EE11E }}
 
+      - name: List contents of artifact directory for debugging
+        run: dir '.'
+        
+      - name: List contents of artifact directory for debugging
+        run: dir './publish'
+        
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
