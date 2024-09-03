@@ -3,6 +3,7 @@ using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using AlexAPI.Library.Mail;
+using AlexAPI.Services.Interfaces;
 
 namespace AlexAPI.Services
 {

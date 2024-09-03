@@ -41,9 +41,8 @@ namespace AlexAPI.Data
             modelBuilder.Entity<OperatingAreaNew>().ToTable("OperatingAreaNews");
             modelBuilder.Entity<Rate>().ToTable("Rates");
             modelBuilder.Entity<SpecialRequest>().ToTable("SpecialRequest");
+            modelBuilder.Entity<Location>().ToTable("Locations");
             base.OnModelCreating(modelBuilder);
         }
-
-        public DbSet<Yacht> Companies { get; set; }
     }
 }

@@ -17,5 +17,6 @@ namespace AlexAPI.Models
         public int Id { get; set; }
         public virtual YachtDetail? Detail { get; set; }
         public virtual YachtBrochure? Brochure { get; set; }
+        public virtual List<Location>? Locations { get; set; }
     }
 }

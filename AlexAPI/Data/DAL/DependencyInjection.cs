@@ -1,5 +1,6 @@
 ﻿using AlexAPI.Data.DAL.WorkUnits;
 using AlexAPI.Services;
+using AlexAPI.Services.Interfaces;
 
 namespace AlexAPI.Data.DAL
 {
@@ -15,6 +16,7 @@ namespace AlexAPI.Data.DAL
             services.AddTransient<IFileTemplateService, FileTemplateService>();
             services.AddTransient<IGeminiAIService, GeminiAIService>();
             services.AddTransient<ILlamaService, LlamaService>();
+            services.AddTransient<ICSVImportService, CSVImportService>();
 
             //Work Unit
             services.AddTransient<YachtWorkUnit>();
