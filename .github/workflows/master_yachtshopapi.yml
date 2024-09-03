@@ -28,9 +28,6 @@ jobs:
       - name: dotnet publish
         run: dotnet publish -c Release -o "${{ github.workspace }}/myapp"
 
-      - name: List contents of published directory for debugging
-        run: dir "./myapp"
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -50,6 +47,9 @@ jobs:
         with:
           name: .net-app
 
+      - name: List contents of artifact directory for debugging
+        run: dir ./.net-app
+        
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -62,4 +62,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'YachtShopAPI'
-          package: './myapp'
+          package: './.net-app'
