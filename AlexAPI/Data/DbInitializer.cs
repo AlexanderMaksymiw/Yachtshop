@@ -47,15 +47,12 @@ namespace AlexAPI.Data
 
             foreach (var r in _configuration.GetSection("DefaultRoles").Get<string[]>())
             {
-                IdentityRole? newRole = _roleManager.FindByNameAsync(r).Result;
-                if (newRole == null)
+                var newRole = new IdentityRole
                 {
-                    newRole = new IdentityRole
-                    {
-                        Name = r
-                    };
-                    _ = _roleManager.CreateAsync(newRole).Result;
-                }
+                    Name = r
+                };
+                _ = _roleManager.CreateAsync(newRole).Result;
+                _ = _userManager.AddToRoleAsync(user, r).Result;
             }
 
             if (!_userManager.GetRolesAsync(user).Result.Contains(superadminDefaultRole))
