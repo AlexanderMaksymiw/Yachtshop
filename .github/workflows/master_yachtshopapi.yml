@@ -8,7 +8,11 @@ on:
     branches:
       - master
   workflow_dispatch:
-
+  
+permissions:
+  id-token: write
+  contents: read
+  
 jobs:
   build:
     runs-on: windows-latest
@@ -24,14 +28,14 @@ jobs:
       - name: Build with dotnet
         run: dotnet build --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+      - name: Publish
+        run: dotnet publish ./AlexAPI.sln --configuration Release --no-build --output './publish'
 
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
+      - name: Upload Publish Directory
+        uses: actions/upload-artifact@v3
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          name: publish
+          path: './publish'
 
   deploy:
     runs-on: windows-latest
@@ -42,24 +46,23 @@ jobs:
     permissions:
       id-token: write #This is required for requesting the JWT
 
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
+    steps:        
+      - name: Download Publish Directory
+        uses: actions/download-artifact@v3
         with:
-          name: .net-app
-      
+          name: publish
+          path: './publish'
+          
       - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_74D31B01FAF649DA93623A0232AC806A }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_056C52E189BA41D0848992F87CA586C9 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F665B239CB1049FF87C2CF96B15EE11E }}
-
+        
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'YachtShopAPI'
-          slot-name: 'Production'
-          package: .
-          
+          package: './publish'

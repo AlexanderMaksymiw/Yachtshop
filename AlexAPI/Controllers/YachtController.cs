@@ -114,8 +114,8 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetById")]
-        public async Task<IActionResult> GetById(Guid id)
+        [Route("GetAllYachtNames")]
+        public async Task<IActionResult> GetAllYachtNames()
         {
             return Ok(workUnit.YachtRepository.GetByID(id));
         }
@@ -140,7 +140,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(x => name.Equals(x.Name, StringComparison.CurrentCultureIgnoreCase)).First());
+                return Ok(workUnit.YachtRepository.Get(x => x.Name.ToLower() == name.ToLower()).First());
             }
             catch (Exception ex)
             {
