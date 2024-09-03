@@ -6,6 +6,10 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read  # Adjust other permissions as necessary
+  
 jobs:
   build:
     runs-on: windows-latest
