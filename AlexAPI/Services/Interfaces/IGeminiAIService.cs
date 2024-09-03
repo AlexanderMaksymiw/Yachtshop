@@ -1,4 +1,4 @@
-﻿namespace AlexAPI.Services
+﻿namespace AlexAPI.Services.Interfaces
 {
     public interface IGeminiAIService
     {

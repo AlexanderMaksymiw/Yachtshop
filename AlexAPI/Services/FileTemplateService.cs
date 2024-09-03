@@ -1,4 +1,6 @@
-﻿namespace AlexAPI.Services
+﻿using AlexAPI.Services.Interfaces;
+
+namespace AlexAPI.Services
 {
     public class FileTemplateService : IFileTemplateService
     {

@@ -1,6 +1,6 @@
 ﻿using AlexAPI.Library.Mail;
 
-namespace AlexAPI.Services
+namespace AlexAPI.Services.Interfaces
 {
     public interface IMailService
     {
