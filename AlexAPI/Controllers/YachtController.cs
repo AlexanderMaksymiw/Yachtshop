@@ -114,13 +114,6 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetById")]
-        public async Task<IActionResult> GetById(Guid id)
-        {
-            return Ok(workUnit.YachtRepository.GetByID(id));
-        }
-
-        [HttpGet]
         [Route("GetAllYachtNames")]
         public async Task<IActionResult> GetAllYachtNames()
         {

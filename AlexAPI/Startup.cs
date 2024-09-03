@@ -150,11 +150,11 @@ namespace AlexAPI
             app.UseCors("CorsPolicy");
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             if (env.IsDevelopment())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
                 app.UseDeveloperExceptionPage();
                 app.UseHangfireDashboard("/hangfire", new DashboardOptions
                 {
