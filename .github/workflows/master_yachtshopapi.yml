@@ -8,7 +8,7 @@ on:
 
 permissions:
   id-token: write
-  contents: read  # Adjust other permissions as necessary
+  contents: read
   
 jobs:
   build:
@@ -27,6 +27,9 @@ jobs:
 
       - name: dotnet publish
         run: dotnet publish -c Release -o "${{ github.workspace }}/myapp"
+
+      - name: List contents of published directory for debugging
+        run: dir "${{ github.workspace }}/myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
