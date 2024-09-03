@@ -133,7 +133,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(x => name.Equals(x.Name, StringComparison.CurrentCultureIgnoreCase)).First());
+                return Ok(workUnit.YachtRepository.Get(x => x.Name.ToLower() == name.ToLower()).First());
             }
             catch (Exception ex)
             {
