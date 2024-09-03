@@ -29,13 +29,13 @@ jobs:
         run: dotnet publish -c Release -o "${{ github.workspace }}/myapp"
 
       - name: List contents of published directory for debugging
-        run: dir "${{ github.workspace }}/myapp"
+        run: dir "./myapp"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: "${{ github.workspace }}/myapp"
+          path: "./myapp"
 
   deploy:
     runs-on: windows-latest
@@ -62,4 +62,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'YachtShopAPI'
-          package: '${{ github.workspace }}/myapp'
+          package: './myapp'
