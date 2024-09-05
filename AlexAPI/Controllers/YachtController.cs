@@ -117,32 +117,14 @@ namespace AlexAPI.Controllers
         [Route("GetAllYachtNames")]
         public async Task<IActionResult> GetAllYachtNames()
         {
-            return Ok(workUnit.YachtRepository.GetByID(id));
-        }
-
-        [HttpGet]
-        [Route("GetAllYachtNames")]
-        public async Task<IActionResult> GetAllYachtNames()
-        {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Select(x => x.Name));
+                return Ok(workUnit.YachtRepository.Get().Select(x => new Tuple<string?, Guid>(
+                    x.Name,
+                    x.Guid
+                )));
             }
             catch(Exception ex)
-            {
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetByName")]
-        public async Task<IActionResult> GetByName(string name)
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(x => x.Name.ToLower() == name.ToLower()).First());
-            }
-            catch (Exception ex)
             {
                 return BadRequest(ex);
             }
