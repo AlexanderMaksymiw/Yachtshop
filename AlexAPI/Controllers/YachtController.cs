@@ -132,7 +132,7 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetById")]
-        public async Task<IActionResult> GetId(Guid id)
+        public async Task<IActionResult> GetById(Guid id)
         {
             try
             {
