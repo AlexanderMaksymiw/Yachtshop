@@ -113,6 +113,24 @@ namespace AlexAPI.Controllers
             }
         }
 
+        //TODO: Delete this endpoint
+        [HttpGet]
+        [Route("GetAllYachtsWithDetails")]
+        public async Task<IActionResult> GetAllYachtsWithDetails()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get(x => x.Detail.Id > 0).Select(x => new Tuple<string?, Guid>(
+                    x.Name,
+                    x.Guid
+                )));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
         [HttpGet]
         [Route("GetAllYachtNames")]
         public async Task<IActionResult> GetAllYachtNames()
