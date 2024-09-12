@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using AlexAPI.Services.Interfaces;
 using System.Globalization;
-using Microsoft.OpenApi.Extensions;
-using CsvHelper.Configuration.Attributes;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 
 namespace AlexAPI.Controllers
 {
@@ -194,20 +194,20 @@ namespace AlexAPI.Controllers
             return Ok(result1.Replace("```html", "").Replace("```", ""));
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("SYTest")]
-        public IActionResult SYTest(string yachtName)
+        public IActionResult SYTest(IFormFile file)
         {
-            var yachtDetails = csvImportService.ReadSYTimesCSV("C:\\Users\\cmon-\\Downloads\\wetransfer_superyacht-reviews-csv_2024-08-19_1349\\SY Times A-Z Yacht Specs.csv");
-            var result = yachtDetails.Where(x => x.Title.ToLower() == yachtName.ToLower()).Select(x => x.Text).First().Split('\n');
+            var yachtDetails = csvImportService.ReadSYTimesCSV(file);
+            var result = yachtDetails.Take(10);
             return Ok(result);
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("CWTest")]
-        public IActionResult CWTest()
+        public IActionResult CWTest(IFormFile file)
         {
-            var yachtDetails = csvImportService.ReadCWYachtsCSV("C:\\Users\\cmon-\\Downloads\\wetransfer_superyacht-reviews-csv_2024-08-19_1349\\Charterworld A-Z Yachts.csv").ToList();
+            var yachtDetails = csvImportService.ReadCWYachtsCSV(file);
             TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
 
             foreach (var r in yachtDetails)
@@ -237,6 +237,174 @@ namespace AlexAPI.Controllers
 
             workUnit.Save();
             return Ok(yachtDetails);
+        }
+
+
+        [HttpPost]
+        [Route("YCFTest")]
+        public IActionResult YachtCharterFleetIngest(IFormFile file)
+        {
+            var yachtsFromCSV = csvImportService.ReadYachtCharterFleetCSV(file);
+            foreach (var csvYacht in yachtsFromCSV)
+            {
+                var yacht = workUnit.YachtRepository.Get(x => x.Name == csvYacht.Title).FirstOrDefault();
+                List<string> locations = new List<string>();
+                csvYacht.Cruising_Regions_Summer.Split("\n").ToList().ForEach(x =>
+                {
+                    x = x.Replace(",", "").Trim();
+                    if (x != "" && x != "Cruising Regions" && x != "HOTSPOTS:" && !locations.Contains(x))
+                    {
+                        locations.Add(x);
+                    }
+                });
+                if (yacht == null)
+                {
+                    csvYacht.Cruising_Regions_Winter.Split("\n").ToList().ForEach(x =>
+                    {
+                        x = x.Replace(",", "").Trim();
+                        if (x.Replace(" ", "") != "" && x.Replace(" ", "") != "CruisingRegions" && x.Replace(" ", "") != "HOTSPOTS:" && !locations.Contains(x))
+                        {
+                            locations.Add(x);
+                        }
+                    });
+                    workUnit.YachtRepository.Insert(new Yacht
+                    {
+                        Locations = locations.Select(x => new Location { Name = x }).ToList(),
+                        Brochure = new YachtBrochure
+                        {
+                            Auto = new Auto
+                            {
+                                Equipment = csvYacht.Amenities_Entertainment.IsNullOrEmpty() ? "" : csvYacht.Amenities_Entertainment,
+                            },
+                            Specifications = new Specifications
+                            {
+                                Length = csvYacht.Crew.IsNullOrEmpty() ? "" : csvYacht.Length,
+                                Beam = csvYacht.Beam.IsNullOrEmpty() ? "" : csvYacht.Beam,
+                                Draft = csvYacht.Draft.IsNullOrEmpty() ? "" : csvYacht.Draft,
+                                GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Guests),
+                                GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? "" : csvYacht.Gross_Tonnage,
+                                CruisingSpeed = csvYacht.Cruising_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruising_Speed == "-" ? 0 : decimal.Parse(csvYacht.Cruising_Speed.Split(" ")[0]),
+                                YearBuilt = csvYacht.Built.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Built),
+                                Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
+                                Model = csvYacht.Model.IsNullOrEmpty() ? "" : csvYacht.Model,
+                                ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
+                                InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
+                                Toys = csvYacht.Toys.IsNullOrEmpty() ? "" : csvYacht.Toys,
+                            }
+                        },
+                        Detail = new YachtDetail
+                        {
+                            TotalCrew = csvYacht.Crew.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Crew),
+                            Price = csvYacht.Price.IsNullOrEmpty() ? "" : csvYacht.Price,
+                            SummerRates = csvYacht.Summer_Charter_Rates.IsNullOrEmpty() ? "" : csvYacht.Summer_Charter_Rates.Split("\n")[0],
+                            WinterRates = csvYacht.Winter_Charter_Rates.IsNullOrEmpty() ? "" : csvYacht.Winter_Charter_Rates.Split("\n")[0],
+                            AwardNominations = csvYacht.Awards_Nominations.IsNullOrEmpty() ? "" :csvYacht.Awards_Nominations,
+                            Cabins = csvYacht.Cabins.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Cabins)
+                        }
+                    });
+                }
+                else
+                {
+                    yacht.Locations = locations.Select(x => new Location { Name = x }).ToList();
+
+                    if(yacht.Brochure == null)
+                    {
+                        yacht.Brochure = new YachtBrochure
+                        {
+                            Auto = new Auto
+                            {
+                                Equipment = csvYacht.Amenities_Entertainment.IsNullOrEmpty() ? "" : csvYacht.Amenities_Entertainment
+                            },
+                            Specifications = new Specifications
+                            {
+                                Length = csvYacht.Crew.IsNullOrEmpty() ? "" : csvYacht.Length,
+                                Beam = csvYacht.Beam.IsNullOrEmpty() ? "" : csvYacht.Beam,
+                                Draft = csvYacht.Draft.IsNullOrEmpty() ? "" : csvYacht.Draft,
+                                GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Guests),
+                                GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? "" : csvYacht.Gross_Tonnage,
+                                CruisingSpeed = csvYacht.Cruising_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruising_Speed == "-" ? 0 : decimal.Parse(csvYacht.Cruising_Speed.Split(" ")[0]),
+                                YearBuilt = csvYacht.Built.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Built),
+                                Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
+                                Model = csvYacht.Model.IsNullOrEmpty() ? "" : csvYacht.Model,
+                                ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
+                                InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
+                                Toys = csvYacht.Toys.IsNullOrEmpty() ? "" : csvYacht.Toys,
+                            }
+                        };
+                    }
+                    else
+                    {
+                        if(yacht.Brochure.Auto == null)
+                        {
+                            yacht.Brochure.Auto = new Auto
+                            {
+                                Equipment = csvYacht.Amenities_Entertainment.IsNullOrEmpty() ? "" : csvYacht.Amenities_Entertainment
+                            };
+                        }
+                        else
+                        {
+                            yacht.Brochure.Auto.Equipment = csvYacht.Amenities_Entertainment.IsNullOrEmpty() ? yacht.Brochure.Auto.Equipment : csvYacht.Amenities_Entertainment;
+                        }
+                        if(yacht.Brochure.Specifications == null)
+                        {
+                            yacht.Brochure.Specifications = new Specifications
+                            {
+                                Length = csvYacht.Crew.IsNullOrEmpty() ? "" : csvYacht.Length,
+                                Beam = csvYacht.Beam.IsNullOrEmpty() ? "" : csvYacht.Beam,
+                                Draft = csvYacht.Draft.IsNullOrEmpty() ? "" : csvYacht.Draft,
+                                GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Guests),
+                                GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? "" : csvYacht.Gross_Tonnage,
+                                CruisingSpeed = csvYacht.Cruising_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruising_Speed == "-" ? 0 : decimal.Parse(csvYacht.Cruising_Speed.Split(" ")[0]),
+                                YearBuilt = csvYacht.Built.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Built),
+                                Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
+                                Model = csvYacht.Model.IsNullOrEmpty() ? "" : csvYacht.Model,
+                                ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
+                                InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
+                                Toys = csvYacht.Toys.IsNullOrEmpty() ? "" : csvYacht.Toys,
+                            };
+                        }
+                        else
+                        {
+                            yacht.Brochure.Specifications.Length = csvYacht.Crew.IsNullOrEmpty() ? yacht.Brochure.Specifications.Length : csvYacht.Length;
+                            yacht.Brochure.Specifications.Beam = csvYacht.Beam.IsNullOrEmpty() ? yacht.Brochure.Specifications.Beam : csvYacht.Beam;
+                            yacht.Brochure.Specifications.Draft = csvYacht.Draft.IsNullOrEmpty() ? yacht.Brochure.Specifications.Draft : csvYacht.Draft;
+                            yacht.Brochure.Specifications.GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? yacht.Brochure.Specifications.GuestsCruising : int.Parse(csvYacht.Guests);
+                            yacht.Brochure.Specifications.GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? yacht.Brochure.Specifications.GrossTonnage : csvYacht.Gross_Tonnage;
+                            yacht.Brochure.Specifications.CruisingSpeed = csvYacht.Cruising_Speed.IsNullOrEmpty() ? yacht.Brochure.Specifications.CruisingSpeed : csvYacht.Cruising_Speed == "-" ? 0 : decimal.Parse(csvYacht.Cruising_Speed.Split(" ")[0]);
+                            yacht.Brochure.Specifications.YearBuilt = csvYacht.Built.IsNullOrEmpty() ? yacht.Brochure.Specifications.YearBuilt : int.Parse(csvYacht.Built);
+                            yacht.Brochure.Specifications.Builder = csvYacht.Builder.IsNullOrEmpty() ? yacht.Brochure.Specifications.Builder : csvYacht.Builder;
+                            yacht.Brochure.Specifications.Model = csvYacht.Model.IsNullOrEmpty() ? yacht.Brochure.Specifications.Model : csvYacht.Model;
+                            yacht.Brochure.Specifications.ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? yacht.Brochure.Specifications.ExteriorDesigner : csvYacht.Exterior_Designer;
+                            yacht.Brochure.Specifications.InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? yacht.Brochure.Specifications.InteriorDesigner : csvYacht.Interior_Designer;
+                            yacht.Brochure.Specifications.Toys = csvYacht.Toys.IsNullOrEmpty() ? yacht.Brochure.Specifications.Toys : csvYacht.Toys;
+                        }
+                    }
+                    if(yacht.Detail == null)
+                    {
+                        yacht.Detail = new YachtDetail
+                        {
+                            TotalCrew = csvYacht.Crew.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Crew),
+                            Price = csvYacht.Price.IsNullOrEmpty() ? "" : csvYacht.Price,
+                            SummerRates = csvYacht.Summer_Charter_Rates.IsNullOrEmpty() ? "" : csvYacht.Summer_Charter_Rates.Split("\n")[0],
+                            WinterRates = csvYacht.Winter_Charter_Rates.IsNullOrEmpty() ? "" : csvYacht.Winter_Charter_Rates.Split("\n")[0],
+                            AwardNominations = csvYacht.Awards_Nominations.IsNullOrEmpty() ? "" : csvYacht.Awards_Nominations,
+                            Cabins = csvYacht.Cabins.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Cabins),
+                        };
+                    }
+                    else
+                    {
+                        yacht.Detail.TotalCrew = csvYacht.Crew.IsNullOrEmpty() ? yacht.Detail.TotalCrew : int.Parse(csvYacht.Crew);
+                        yacht.Detail.Price = csvYacht.Price.IsNullOrEmpty() ? yacht.Detail.Price : csvYacht.Price;
+                        yacht.Detail.SummerRates = csvYacht.Summer_Charter_Rates.IsNullOrEmpty() ? yacht.Detail.SummerRates : csvYacht.Summer_Charter_Rates.Split("\n")[0];
+                        yacht.Detail.WinterRates = csvYacht.Winter_Charter_Rates.IsNullOrEmpty() ? yacht.Detail.WinterRates : csvYacht.Winter_Charter_Rates.Split("\n")[0];
+                        yacht.Detail.AwardNominations = csvYacht.Awards_Nominations.IsNullOrEmpty() ? yacht.Detail.AwardNominations : csvYacht.Awards_Nominations;
+                        yacht.Detail.Cabins = csvYacht.Cabins.IsNullOrEmpty() ? 0 : int.Parse(csvYacht.Cabins);
+                    }
+                    workUnit.YachtRepository.Update(yacht);
+                }
+            }
+            workUnit.Save();
+            return Ok(yachtsFromCSV);
         }
     }
 }

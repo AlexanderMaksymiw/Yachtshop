@@ -4,7 +4,8 @@ namespace AlexAPI.Services.Interfaces
 {
     public interface ICSVImportService
     {
-        public IEnumerable<SYTimesCSV> ReadSYTimesCSV(string filePath);
-        public IEnumerable<CWYachtsCSV> ReadCWYachtsCSV(string filePath);
+        public IEnumerable<SYTimesCSV> ReadSYTimesCSV(IFormFile file);
+        public IEnumerable<CWYachtsCSV> ReadCWYachtsCSV(IFormFile file);
+        public IEnumerable<YCFYachtsCSV> ReadYachtCharterFleetCSV(IFormFile file);
     }
 }

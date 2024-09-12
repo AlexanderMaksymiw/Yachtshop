@@ -92,6 +92,10 @@ namespace AlexAPI.Models
         public string? LengthImperial { get; set; }
         public string? BeamImperial { get; set; }
         public string? DraftImperial { get; set; }
+        public string? Price { get; set; }
+        public string? SummerRates { get; set; }
+        public string? WinterRates { get; set; }
+        public string? AwardNominations { get; set; }
         public List<int>? Equipment { get; set; } // Check JSON data type
         public List<string>? OperatingAreas { get; set; } // Check JSON data type
         public virtual List<Rate>? Rates { get; set; } // Check JSON data type

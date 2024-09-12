@@ -6,10 +6,14 @@ namespace AlexAPI.Models
     {
         [Key]
         public Guid Id { get; set; }
+        public string? ExteriorDesigner { get; set; }
+        public string? InteriorDesigner { get; set; }
         public int KingBeds { get; set; }
         public int TwinCabins { get; set; }
         public int YearBuilt { get; set; }
-        public int CruisingSpeed { get; set; }
+        public string? Model { get; set; }
+        public string? GrossTonnage { get; set; }
+        public decimal? CruisingSpeed { get; set; }
         public int GuestsSleeping { get; set; }
         public string? FuelConsumption { get; set; }
         public int YearRefit { get; set; }

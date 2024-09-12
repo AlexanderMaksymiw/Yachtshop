@@ -13,7 +13,7 @@ namespace AlexAPI.Models
         public virtual Crew? Crew { get; set; }
         public virtual Video? Video { get; set; }
         public virtual Specifications? Specifications { get; set; }
-        public virtual Gallery Galleries { get; set; }
+        public virtual Gallery? Galleries { get; set; }
         public virtual General? General { get; set; }
         public virtual Prices? Prices { get; set; }
         public virtual List<KeyFeatureItem>? KeyFeatures { get; set; }

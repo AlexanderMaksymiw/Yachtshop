@@ -4,6 +4,7 @@ using AlexAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlexAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240912211112_AddedAwardNominationsToDetails")]
+    partial class AddedAwardNominationsToDetails
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -605,8 +608,8 @@ namespace AlexAPI.Migrations
                     b.Property<string>("CrewProfiles")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("CruisingSpeed")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int>("CruisingSpeed")
+                        .HasColumnType("int");
 
                     b.Property<int>("DoubleBeds")
                         .HasColumnType("int");
@@ -791,7 +794,7 @@ namespace AlexAPI.Migrations
                     b.Property<Guid?>("CrewId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("GalleriesId")
+                    b.Property<Guid>("GalleriesId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("GeneralId")
@@ -1006,8 +1009,8 @@ namespace AlexAPI.Migrations
                     b.Property<string>("PreviousName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Price")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<decimal?>("Price")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("PullmanBeds")
                         .HasColumnType("int");
@@ -1365,7 +1368,9 @@ namespace AlexAPI.Migrations
 
                     b.HasOne("AlexAPI.Models.Gallery", "Galleries")
                         .WithMany()
-                        .HasForeignKey("GalleriesId");
+                        .HasForeignKey("GalleriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("AlexAPI.Models.General", "General")
                         .WithMany()
