@@ -247,28 +247,29 @@ namespace AlexAPI.Controllers
             var yachtsFromCSV = csvImportService.ReadYachtCharterFleetCSV(file);
             foreach (var csvYacht in yachtsFromCSV)
             {
-                var yacht = workUnit.YachtRepository.Get(x => x.Name == csvYacht.Title).FirstOrDefault();
+                var yacht = workUnit.YachtRepository.Get(x => x.Name.ToLower() == csvYacht.Title.ToLower()).FirstOrDefault();
                 List<string> locations = new List<string>();
                 csvYacht.Cruising_Regions_Summer.Split("\n").ToList().ForEach(x =>
                 {
                     x = x.Replace(",", "").Trim();
-                    if (x != "" && x != "Cruising Regions" && x != "HOTSPOTS:" && !locations.Contains(x))
+                    if (x != "" && x != "Cruising Regions" && x != "HOT SPOTS:" && !locations.Contains(x))
+                    {
+                        locations.Add(x);
+                    }
+                });
+                csvYacht.Cruising_Regions_Winter.Split("\n").ToList().ForEach(x =>
+                {
+                    x = x.Replace(",", "").Trim();
+                    if (x.Replace(" ", "") != "" && x.Replace(" ", "") != "Cruising Regions" && x.Replace(" ", "") != "HOT SPOTS:" && !locations.Contains(x))
                     {
                         locations.Add(x);
                     }
                 });
                 if (yacht == null)
                 {
-                    csvYacht.Cruising_Regions_Winter.Split("\n").ToList().ForEach(x =>
-                    {
-                        x = x.Replace(",", "").Trim();
-                        if (x.Replace(" ", "") != "" && x.Replace(" ", "") != "CruisingRegions" && x.Replace(" ", "") != "HOTSPOTS:" && !locations.Contains(x))
-                        {
-                            locations.Add(x);
-                        }
-                    });
                     workUnit.YachtRepository.Insert(new Yacht
                     {
+                        Name = csvYacht.Title,
                         Locations = locations.Select(x => new Location { Name = x }).ToList(),
                         Brochure = new YachtBrochure
                         {
