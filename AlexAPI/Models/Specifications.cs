@@ -23,7 +23,7 @@ namespace AlexAPI.Models
         public int DoubleBeds { get; set; }
         public string? Beam { get; set; }
         public string? BeamMetres { get; set; }
-        public int MaxSpeed { get; set; }
+        public string? MaxSpeed { get; set; }
         public string? Builder { get; set; }
         public string? SailPower { get; set; }
         public int SingleBeds { get; set; }
@@ -39,5 +39,10 @@ namespace AlexAPI.Models
         public string? DraftMetres { get; set; }
         public string? Toys { get; set; }
         public string? CrewProfiles { get; set; }
+        public string? Type { get; set; }
+        public string? Port { get; set; }
+        public string? TotalPowerOutput { get; set; }
+        public string? PropulsionType { get; set; }
+        public string? FuelCapacity { get; set; }
     }
 }
