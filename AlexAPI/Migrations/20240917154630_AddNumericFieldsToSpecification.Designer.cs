@@ -4,6 +4,7 @@ using AlexAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlexAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240917154630_AddNumericFieldsToSpecification")]
+    partial class AddNumericFieldsToSpecification
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -590,8 +593,8 @@ namespace AlexAPI.Migrations
                     b.Property<string>("Beam")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("BeamMetres")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("BeamMetres")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Builder")
                         .HasColumnType("nvarchar(max)");
@@ -617,8 +620,8 @@ namespace AlexAPI.Migrations
                     b.Property<string>("Draft")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("DraftMetres")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("DraftMetres")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ExteriorDesigner")
                         .HasColumnType("nvarchar(max)");
@@ -656,8 +659,8 @@ namespace AlexAPI.Migrations
                     b.Property<string>("Length")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("LengthMetres")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("LengthMetres")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("MaxSpeed")
                         .HasColumnType("nvarchar(max)");
@@ -1029,9 +1032,6 @@ namespace AlexAPI.Migrations
 
                     b.Property<string>("Price")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("PriceNumeric")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("PullmanBeds")
                         .HasColumnType("int");

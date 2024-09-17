@@ -93,6 +93,7 @@ namespace AlexAPI.Models
         public string? BeamImperial { get; set; }
         public string? DraftImperial { get; set; }
         public string? Price { get; set; }
+        public decimal? PriceNumeric { get; set; }
         public string? SummerRates { get; set; }
         public string? WinterRates { get; set; }
         public string? AwardNominations { get; set; }

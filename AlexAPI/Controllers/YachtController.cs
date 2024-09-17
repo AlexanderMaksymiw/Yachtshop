@@ -30,6 +30,7 @@ namespace AlexAPI.Controllers
             this.llamaAI = llamaAI;
         }
 
+        //TODO: Delete me!
         [HttpGet]
         [Route("Populate")]
         public async Task<IActionResult> PopulateDatabase()
@@ -113,14 +114,142 @@ namespace AlexAPI.Controllers
             }
         }
 
-        //TODO: Delete this endpoint
+        [HttpPost]
+        [Route("Get")]
+        public IActionResult Get(
+    string? name = null,
+    string? type = null,
+    string? destination = null,
+    int? minPrice = null,
+    int? maxPrice = null,
+    int? minLength = null,
+    int? maxLength = null,
+    int? minGuests = null,
+    int? maxGuests = null,
+    int? minYearBuilt = null,
+    int? maxYearBuilt = null,
+    int? minCabins = null,
+    int? maxCabins = null,
+    int? minMaxSpeed = null,
+    int? maxMaxSpeed = null,
+    int? minGrossTonnage = null,
+    int? maxGrossTonnage = null,
+    int? minCruisingSpeed = null,
+    int? maxCruisingSpeed = null,
+    string? builder = null,
+    string[]? equipment = null)
+        {
+            // Get the base query
+            var query = workUnit.YachtRepository.Get().AsQueryable();
+
+            // Apply filters based on parameters
+            if (!string.IsNullOrEmpty(name))
+            {
+                query = query.Where(x => x.Name != null && x.Name.Contains(name));
+            }
+
+            if (!string.IsNullOrEmpty(type))
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.Type == type);
+            }
+
+            if (!string.IsNullOrEmpty(destination))
+            {
+                query = query.Where(x => x.Locations != null && x.Locations.Any(l => l.Name == destination));
+            }
+
+            if (minPrice.HasValue || maxPrice.HasValue)
+            {
+                query = query.Where(x => x.Detail != null && x.Detail.PriceNumeric.HasValue &&
+                    (!minPrice.HasValue || x.Detail.PriceNumeric.Value >= minPrice.Value) &&
+                    (!maxPrice.HasValue || x.Detail.PriceNumeric.Value <= maxPrice.Value));
+            }
+
+
+            if (minLength.HasValue || maxLength.HasValue)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.LengthMetres.HasValue &&
+                    (!minLength.HasValue || x.Brochure.Specifications.LengthMetres.Value >= minLength.Value) &&
+                    (!maxLength.HasValue || x.Brochure.Specifications.LengthMetres.Value <= maxLength.Value));
+            }
+
+            if (minGuests.HasValue)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.GuestsCruising >= minGuests.Value);
+            }
+
+            if (maxGuests.HasValue)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.GuestsCruising <= maxGuests.Value);
+            }
+
+            if (minYearBuilt.HasValue)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.YearBuilt >= minYearBuilt.Value);
+            }
+
+            if (maxYearBuilt.HasValue)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.YearBuilt <= maxYearBuilt.Value);
+            }
+
+            if (minCabins.HasValue || maxCabins.HasValue)
+            {
+                query = query.Where(x => x.Detail != null &&
+                    (!minCabins.HasValue || x.Detail.Cabins >= minCabins.Value) &&
+                    (!maxCabins.HasValue || x.Detail.Cabins <= maxCabins.Value));
+            }
+
+            if (minMaxSpeed.HasValue || maxMaxSpeed.HasValue)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.MaxSpeed != null);
+
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.MaxSpeedNumeric != null &&
+                    (!minMaxSpeed.HasValue || x.Brochure.Specifications.MaxSpeedNumeric >= minMaxSpeed.Value) &&
+                    (!maxMaxSpeed.HasValue || x.Brochure.Specifications.MaxSpeedNumeric <= maxMaxSpeed.Value));
+            }
+
+            if (minGrossTonnage.HasValue || maxGrossTonnage.HasValue)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.GrossTonnage != null);
+
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.GrossTonnageNumeric != null &&
+                    (!minGrossTonnage.HasValue || x.Brochure.Specifications.GrossTonnageNumeric >= minGrossTonnage.Value) &&
+                    (!maxGrossTonnage.HasValue || x.Brochure.Specifications.GrossTonnageNumeric <= maxGrossTonnage.Value));
+            }
+
+            if (minCruisingSpeed.HasValue || maxCruisingSpeed.HasValue)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.CruisingSpeed != null &&
+                    (!minCruisingSpeed.HasValue || x.Brochure.Specifications.CruisingSpeed >= minCruisingSpeed.Value) &&
+                    (!maxCruisingSpeed.HasValue || x.Brochure.Specifications.CruisingSpeed <= maxCruisingSpeed.Value));
+            }
+
+            if (!string.IsNullOrEmpty(builder))
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.Builder == builder);
+            }
+
+            if (equipment != null && equipment.Length > 0)
+            {
+                query = query.Where(x => x.Brochure != null && x.Brochure.Auto != null && x.Brochure.Auto.Equipment != null &&
+                    equipment.All(e => x.Brochure.Auto.Equipment.Contains(e)));
+            }
+
+            // Execute the query and get the results
+            var yachts = query.ToList();
+
+            return Ok(yachts);
+        }
+
+        //TODO: Delete me!
         [HttpGet]
-        [Route("GetAllYachtsWithDetails")]
-        public async Task<IActionResult> GetAllYachtsWithDetails()
+        [Route("GetAllYachtNames")]
+        public IActionResult GetAllYachtNames()
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(x => x.Detail.Id > 0).Select(x => new Tuple<string?, Guid>(
+                return Ok(workUnit.YachtRepository.Get().Select(x => new Tuple<string?, Guid>(
                     x.Name,
                     x.Guid
                 )));
@@ -132,25 +261,8 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetAllYachtNames")]
-        public async Task<IActionResult> GetAllYachtNames()
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get().Select(x => new Tuple<string?, Guid>(
-                    x.Name,
-                    x.Guid
-                )));
-            }
-            catch(Exception ex)
-            {
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
         [Route("GetById")]
-        public async Task<IActionResult> GetById(Guid id)
+        public IActionResult GetById(Guid id)
         {
             try
             {
@@ -162,20 +274,22 @@ namespace AlexAPI.Controllers
             }
         }
 
+        //TODO: Delete me!
         [HttpGet]
         [Route("GetBrochureById")]
-        public async Task<IActionResult> GetBrochure(Guid id)
+        public IActionResult GetBrochure(Guid id)
         {
             return Ok(workUnit.YachtRepository.GetByID(id).Brochure);
         }
 
         [HttpGet]
         [Route("GetYachtImagesById")]
-        public async Task<IActionResult> GetYachtImagesById(Guid id)
+        public IActionResult GetYachtImagesById(Guid id)
         {
             return Ok(workUnit.YachtRepository.GetByID(id).Brochure.Galleries.Full.Select(x => x.Url));
         }
 
+        //TODO: Delete me!
         [HttpGet]
         [Route("GetYachtToys")]
         public async Task<IActionResult> GetYachtToys(Guid id)
@@ -185,6 +299,7 @@ namespace AlexAPI.Controllers
             return Ok(result1.Replace("```html", "").Replace("```", ""));
         }
 
+        //TODO: Delete me!
         [HttpGet]
         [Route("GetYachtEquipment")]
         public async Task<IActionResult> GetYachtEquipment(Guid id)
@@ -194,6 +309,7 @@ namespace AlexAPI.Controllers
             return Ok(result1.Replace("```html", "").Replace("```", ""));
         }
 
+        //TODO: Delete me!
         [HttpPost]
         [Route("SuperYachtTimesImport")]
         public IActionResult SYTest(IFormFile file)
@@ -327,6 +443,7 @@ namespace AlexAPI.Controllers
             return Ok(yachtsFromCSV);
         }
 
+        //TODO: Delete me!
         [HttpPost]
         [Route("CharterWorldImport")]
         public IActionResult CWTest(IFormFile file)
@@ -363,7 +480,7 @@ namespace AlexAPI.Controllers
             return Ok(yachtDetails);
         }
 
-
+        //TODO: Delete me!
         [HttpPost]
         [Route("YachtCharterFleetImport")]
         public IActionResult YachtCharterFleetIngest(IFormFile file)
