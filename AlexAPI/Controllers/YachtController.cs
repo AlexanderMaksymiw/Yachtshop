@@ -117,27 +117,27 @@ namespace AlexAPI.Controllers
         [HttpPost]
         [Route("Get")]
         public IActionResult Get(
-    string? name = null,
-    string? type = null,
-    string? destination = null,
-    int? minPrice = null,
-    int? maxPrice = null,
-    int? minLength = null,
-    int? maxLength = null,
-    int? minGuests = null,
-    int? maxGuests = null,
-    int? minYearBuilt = null,
-    int? maxYearBuilt = null,
-    int? minCabins = null,
-    int? maxCabins = null,
-    int? minMaxSpeed = null,
-    int? maxMaxSpeed = null,
-    int? minGrossTonnage = null,
-    int? maxGrossTonnage = null,
-    int? minCruisingSpeed = null,
-    int? maxCruisingSpeed = null,
-    string? builder = null,
-    string[]? equipment = null)
+            string? name = null,
+            string? type = null,
+            string? destination = null,
+            int? minPrice = null,
+            int? maxPrice = null,
+            int? minLength = null,
+            int? maxLength = null,
+            int? minGuests = null,
+            int? maxGuests = null,
+            int? minYearBuilt = null,
+            int? maxYearBuilt = null,
+            int? minCabins = null,
+            int? maxCabins = null,
+            int? minMaxSpeed = null,
+            int? maxMaxSpeed = null,
+            int? minGrossTonnage = null,
+            int? maxGrossTonnage = null,
+            int? minCruisingSpeed = null,
+            int? maxCruisingSpeed = null,
+            string? builder = null,
+            string[]? equipment = null)
         {
             // Get the base query
             var query = workUnit.YachtRepository.Get().AsQueryable();
