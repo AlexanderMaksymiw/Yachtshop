@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Linq.Expressions;
 
 namespace AlexAPI.Data.DAL.Repository
@@ -71,6 +73,50 @@ namespace AlexAPI.Data.DAL.Repository
         {
             dbSet.Attach(entityToUpdate);
             context.Entry(entityToUpdate).State = EntityState.Modified;
+        }
+
+        public virtual IEnumerable<T> ExecuteSqlQuery<T>(string sql, params SqlParameter[] parameters) where T : class, new()
+        {
+            var resultList = new List<T>();
+
+            using (var command = context.Database.GetDbConnection().CreateCommand())
+            {
+                command.CommandText = sql;
+                command.CommandType = CommandType.Text;
+
+                // Add parameters
+                if (parameters != null)
+                {
+                    foreach (var parameter in parameters)
+                    {
+                        command.Parameters.Add(parameter);
+                    }
+                }
+
+                context.Database.OpenConnection();
+
+                using (var reader = command.ExecuteReader())
+                {
+                    var properties = typeof(T).GetProperties();
+
+                    while (reader.Read())
+                    {
+                        var entity = new T();
+                        foreach (var prop in properties)
+                        {
+                            var columnName = prop.Name;
+                            if (reader.HasRows && !reader.IsDBNull(reader.GetOrdinal(columnName)))
+                            {
+                                var value = reader[columnName];
+                                prop.SetValue(entity, value);
+                            }
+                        }
+                        resultList.Add(entity);
+                    }
+                }
+            }
+
+            return resultList;
         }
     }
 }

@@ -1,9 +1,8 @@
 ﻿namespace AlexAPI.Models
 {
-    public class Location
+    public class PreviousName
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
-        public virtual ICollection<Yacht> Yachts { get; set; }
     }
 }

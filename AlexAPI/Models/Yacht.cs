@@ -1,22 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace AlexAPI.Models
+﻿namespace AlexAPI.Models
 {
-    public class YachtListResponse
-    {
-        public List<Yacht> Data { get; set; }
-        public List<object> Errors { get; set; }
-    }
-
     public class Yacht
     {
-        [Key]
-        public Guid Guid { get; set; }
-        public string? Name { get; set; }
-        public string? RegistryPort { get; set; }
-        public int Id { get; set; }
-        public virtual YachtDetail? Detail { get; set; }
-        public virtual YachtBrochure? Brochure { get; set; }
-        public virtual List<Location>? Locations { get; set; }
+        public Guid Id { get; set; }
+        public string Name { get; set; }
+        public virtual Price Price { get; set; } = new Price();
+        public virtual Specification Specification { get; set; } = new Specification();
+        public virtual Amenities Amenities { get; set; } = new Amenities();
+        public virtual Awards Awards { get; set; } = new Awards();
+        public virtual Media Media { get; set; } = new Media();
+        public virtual ICollection<Location>? Locations { get; set; }
     }
 }

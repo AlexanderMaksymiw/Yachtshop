@@ -19,28 +19,16 @@ namespace AlexAPI.Data
         {
             // Link DB Table to Model
             modelBuilder.Entity<Yacht>().ToTable("Yachts");
-            modelBuilder.Entity<YachtDetail>().ToTable("Details");
-            modelBuilder.Entity<YachtBrochure>().ToTable("Brochures");
-            modelBuilder.Entity<Auto>().ToTable("Autos");
-            modelBuilder.Entity<Broker>().ToTable("Brokers");
-            modelBuilder.Entity<OperatingAreas>().ToTable("OperatingAreas");
-            modelBuilder.Entity<OperatingAreaItem>().ToTable("OperatingAreaItems");
-            modelBuilder.Entity<CrewMember>().ToTable("CrewMembers");
-            modelBuilder.Entity<Crew>().ToTable("Crews");
-            modelBuilder.Entity<Photo>().ToTable("Photos");
+            modelBuilder.Entity<Specification>().ToTable("Specifications");
+            modelBuilder.Entity<Amenities>().ToTable("Amenities");
+            modelBuilder.Entity<Awards>().ToTable("Awards");
+            modelBuilder.Entity<Equipment>().ToTable("Equipment");
+            modelBuilder.Entity<Media>().ToTable("Media");
+            modelBuilder.Entity<PreviousName>().ToTable("PreviousNames");
+            modelBuilder.Entity<Price>().ToTable("Prices");
+            modelBuilder.Entity<Toy>().ToTable("Toys");
+            modelBuilder.Entity<Image>().ToTable("Images");
             modelBuilder.Entity<Video>().ToTable("Videos");
-            modelBuilder.Entity<VideoInfo>().ToTable("VideoInfos");
-            modelBuilder.Entity<Specifications>().ToTable("Specifications");
-            modelBuilder.Entity<Gallery>().ToTable("Galleries");
-            modelBuilder.Entity<GalleryItem>().ToTable("GalleryItems");
-            modelBuilder.Entity<General>().ToTable("Generals");
-            modelBuilder.Entity<Prices>().ToTable("Prices");
-            modelBuilder.Entity<PriceTerm>().ToTable("PriceTerms");
-            modelBuilder.Entity<KeyFeatureItem>().ToTable("KeyFeatures");
-            modelBuilder.Entity<LicenceRegistration>().ToTable("LicenceRegistrations");
-            modelBuilder.Entity<OperatingAreaNew>().ToTable("OperatingAreaNews");
-            modelBuilder.Entity<Rate>().ToTable("Rates");
-            modelBuilder.Entity<SpecialRequest>().ToTable("SpecialRequest");
             modelBuilder.Entity<Location>().ToTable("Locations");
             base.OnModelCreating(modelBuilder);
         }

@@ -3,9 +3,13 @@ using AlexAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using AlexAPI.Services.Interfaces;
-using System.Globalization;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using AlexAPI.Enums;
+using AlexAPI.ResponseModels;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using System.Text;
+using AlexAPI.ViewModels;
 
 namespace AlexAPI.Controllers
 {
@@ -17,19 +21,17 @@ namespace AlexAPI.Controllers
         private readonly ILogger<YachtController> logger;
         private readonly YachtWorkUnit workUnit;
         private readonly ICSVImportService csvImportService;
-        private readonly IGeminiAIService geminiAI;
         private readonly ILlamaService llamaAI;
 
-        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVImportService csvImportService, IGeminiAIService geminiAI, ILlamaService llamaAI)
+        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVImportService csvImportService, ILlamaService llamaAI)
         {
             this.logger = logger;
             this.configuration = configuration;
             this.workUnit = workUnit;
             this.csvImportService = csvImportService;
-            this.geminiAI = geminiAI;
             this.llamaAI = llamaAI;
         }
-
+        /*
         //TODO: Delete me!
         [HttpGet]
         [Route("Populate")]
@@ -113,136 +115,260 @@ namespace AlexAPI.Controllers
                 return StatusCode((int)response.StatusCode, response.ReasonPhrase);
             }
         }
+        */
 
         [HttpPost]
         [Route("Get")]
         public IActionResult Get(
-            string? name = null,
-            string? type = null,
-            string? destination = null,
-            int? minPrice = null,
-            int? maxPrice = null,
-            int? minLength = null,
-            int? maxLength = null,
-            int? minGuests = null,
-            int? maxGuests = null,
-            int? minYearBuilt = null,
-            int? maxYearBuilt = null,
-            int? minCabins = null,
-            int? maxCabins = null,
-            int? minMaxSpeed = null,
-            int? maxMaxSpeed = null,
-            int? minGrossTonnage = null,
-            int? maxGrossTonnage = null,
-            int? minCruisingSpeed = null,
-            int? maxCruisingSpeed = null,
-            string? builder = null,
-            string[]? equipment = null)
+    string? name = null,
+    string? type = null,
+    string? destination = null,
+    int? minPrice = null,
+    int? maxPrice = null,
+    int? minLength = null,
+    int? maxLength = null,
+    int? minGuests = null,
+    int? maxGuests = null,
+    int? minYearBuilt = null,
+    int? maxYearBuilt = null,
+    int? minCabins = null,
+    int? maxCabins = null,
+    int? minMaxSpeed = null,
+    int? maxMaxSpeed = null,
+    int? minGrossTonnage = null,
+    int? maxGrossTonnage = null,
+    int? minCruisingSpeed = null,
+    int? maxCruisingSpeed = null,
+    string? builder = null,
+    string[]? equipment = null)
         {
-            // Get the base query
-            var query = workUnit.YachtRepository.Get().AsQueryable();
+            // Start building the SQL query
+            var sqlQuery = new StringBuilder(@"
+                SELECT 
+                    y.*,
+                    s.[Type],
+                    s.[SubType],
+                    s.[YearBuilt],
+                    s.[Builder],
+                    s.[Length],
+                    s.[Guests],
+                    s.[Cabins],
+                    s.[Flag],
+                    s.[Port],
+                    s.[Superstructure],
+                    s.[InteriorDesigner],
+                    s.[ExteriorDesigner],
+                    s.[Crew],
+                    s.[Beam],
+                    s.[Draft],
+                    s.[GrossTonnage],
+                    s.[MaxSpeed],
+                    s.[CruisingSpeed],
+                    s.[EnginePowerOutput],
+                    s.[Model],
+                    s.[PropulsionType],
+                    s.[FuelCapacity],
+                    i.[Filename],
+                    i.[PhotographerName],
+                    i.[Type] AS [ImageType],
+                    i.[Url]
+                FROM 
+                    Yachts y
+                LEFT JOIN 
+                    Specifications s ON y.SpecificationId = s.Id
+                LEFT JOIN 
+                    Media m ON y.MediaId = m.Id
+                LEFT JOIN 
+                    Images i ON i.MediaId = m.Id
+                LEFT JOIN 
+                    Prices p ON y.PriceId = p.Id
+                LEFT JOIN 
+                    LocationYacht ly ON y.Id = ly.YachtsId
+                LEFT JOIN 
+                    Locations l ON ly.LocationsId = l.Id
+                WHERE 1=1
+            ");
 
-            // Apply filters based on parameters
+            // List to hold SQL parameters
+            var parameters = new List<SqlParameter>();
+
+            // Append conditions based on parameters
             if (!string.IsNullOrEmpty(name))
             {
-                query = query.Where(x => x.Name != null && x.Name.Contains(name));
+                sqlQuery.Append(" AND y.Name LIKE @name");
+                parameters.Add(new SqlParameter("@name", $"%{name}%"));
             }
 
             if (!string.IsNullOrEmpty(type))
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.Type == type);
+                sqlQuery.Append(" AND s.Type = @type");
+                parameters.Add(new SqlParameter("@type", type));
             }
 
             if (!string.IsNullOrEmpty(destination))
             {
-                query = query.Where(x => x.Locations != null && x.Locations.Any(l => l.Name == destination));
+                sqlQuery.Append(" AND l.Name = @destination");
+                parameters.Add(new SqlParameter("@destination", destination));
             }
 
-            if (minPrice.HasValue || maxPrice.HasValue)
+            if (minPrice.HasValue)
             {
-                query = query.Where(x => x.Detail != null && x.Detail.PriceNumeric.HasValue &&
-                    (!minPrice.HasValue || x.Detail.PriceNumeric.Value >= minPrice.Value) &&
-                    (!maxPrice.HasValue || x.Detail.PriceNumeric.Value <= maxPrice.Value));
+                sqlQuery.Append(" AND p.Standard >= @minPrice");
+                parameters.Add(new SqlParameter("@minPrice", minPrice));
             }
 
-
-            if (minLength.HasValue || maxLength.HasValue)
+            if (maxPrice.HasValue)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.LengthMetres.HasValue &&
-                    (!minLength.HasValue || x.Brochure.Specifications.LengthMetres.Value >= minLength.Value) &&
-                    (!maxLength.HasValue || x.Brochure.Specifications.LengthMetres.Value <= maxLength.Value));
+                sqlQuery.Append(" AND p.Standard <= @maxPrice");
+                parameters.Add(new SqlParameter("@maxPrice", maxPrice));
+            }
+
+            if (minLength.HasValue)
+            {
+                sqlQuery.Append(" AND s.Length >= @minLength");
+                parameters.Add(new SqlParameter("@minLength", minLength));
+            }
+
+            if (maxLength.HasValue)
+            {
+                sqlQuery.Append(" AND s.Length <= @maxLength");
+                parameters.Add(new SqlParameter("@maxLength", maxLength));
             }
 
             if (minGuests.HasValue)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.GuestsCruising >= minGuests.Value);
+                sqlQuery.Append(" AND s.Guests >= @minGuests");
+                parameters.Add(new SqlParameter("@minGuests", minGuests));
             }
 
             if (maxGuests.HasValue)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.GuestsCruising <= maxGuests.Value);
+                sqlQuery.Append(" AND s.Guests <= @maxGuests");
+                parameters.Add(new SqlParameter("@maxGuests", maxGuests));
             }
 
             if (minYearBuilt.HasValue)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.YearBuilt >= minYearBuilt.Value);
+                sqlQuery.Append(" AND s.YearBuilt >= @minYearBuilt");
+                parameters.Add(new SqlParameter("@minYearBuilt", minYearBuilt));
             }
 
             if (maxYearBuilt.HasValue)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.YearBuilt <= maxYearBuilt.Value);
+                sqlQuery.Append(" AND s.YearBuilt <= @maxYearBuilt");
+                parameters.Add(new SqlParameter("@maxYearBuilt", maxYearBuilt));
             }
 
-            if (minCabins.HasValue || maxCabins.HasValue)
+            if (minCabins.HasValue)
             {
-                query = query.Where(x => x.Detail != null &&
-                    (!minCabins.HasValue || x.Detail.Cabins >= minCabins.Value) &&
-                    (!maxCabins.HasValue || x.Detail.Cabins <= maxCabins.Value));
+                sqlQuery.Append(" AND s.Cabins >= @minCabins");
+                parameters.Add(new SqlParameter("@minCabins", minCabins));
             }
 
-            if (minMaxSpeed.HasValue || maxMaxSpeed.HasValue)
+            if (maxCabins.HasValue)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.MaxSpeed != null);
-
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.MaxSpeedNumeric != null &&
-                    (!minMaxSpeed.HasValue || x.Brochure.Specifications.MaxSpeedNumeric >= minMaxSpeed.Value) &&
-                    (!maxMaxSpeed.HasValue || x.Brochure.Specifications.MaxSpeedNumeric <= maxMaxSpeed.Value));
+                sqlQuery.Append(" AND s.Cabins <= @maxCabins");
+                parameters.Add(new SqlParameter("@maxCabins", maxCabins));
             }
 
-            if (minGrossTonnage.HasValue || maxGrossTonnage.HasValue)
+            if (minMaxSpeed.HasValue)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.GrossTonnage != null);
-
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.GrossTonnageNumeric != null &&
-                    (!minGrossTonnage.HasValue || x.Brochure.Specifications.GrossTonnageNumeric >= minGrossTonnage.Value) &&
-                    (!maxGrossTonnage.HasValue || x.Brochure.Specifications.GrossTonnageNumeric <= maxGrossTonnage.Value));
+                sqlQuery.Append(" AND s.MaxSpeed >= @minMaxSpeed");
+                parameters.Add(new SqlParameter("@minMaxSpeed", minMaxSpeed));
             }
 
-            if (minCruisingSpeed.HasValue || maxCruisingSpeed.HasValue)
+            if (maxMaxSpeed.HasValue)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.CruisingSpeed != null &&
-                    (!minCruisingSpeed.HasValue || x.Brochure.Specifications.CruisingSpeed >= minCruisingSpeed.Value) &&
-                    (!maxCruisingSpeed.HasValue || x.Brochure.Specifications.CruisingSpeed <= maxCruisingSpeed.Value));
+                sqlQuery.Append(" AND s.MaxSpeed <= @maxMaxSpeed");
+                parameters.Add(new SqlParameter("@maxMaxSpeed", maxMaxSpeed));
+            }
+
+            if (minGrossTonnage.HasValue)
+            {
+                sqlQuery.Append(" AND s.GrossTonnage >= @minGrossTonnage");
+                parameters.Add(new SqlParameter("@minGrossTonnage", minGrossTonnage));
+            }
+
+            if (maxGrossTonnage.HasValue)
+            {
+                sqlQuery.Append(" AND s.GrossTonnage <= @maxGrossTonnage");
+                parameters.Add(new SqlParameter("@maxGrossTonnage", maxGrossTonnage));
+            }
+
+            if (minCruisingSpeed.HasValue)
+            {
+                sqlQuery.Append(" AND s.CruisingSpeed >= @minCruisingSpeed");
+                parameters.Add(new SqlParameter("@minCruisingSpeed", minCruisingSpeed));
+            }
+
+            if (maxCruisingSpeed.HasValue)
+            {
+                sqlQuery.Append(" AND s.CruisingSpeed <= @maxCruisingSpeed");
+                parameters.Add(new SqlParameter("@maxCruisingSpeed", maxCruisingSpeed));
             }
 
             if (!string.IsNullOrEmpty(builder))
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Specifications != null && x.Brochure.Specifications.Builder == builder);
+                sqlQuery.Append(" AND s.Builder = @builder");
+                parameters.Add(new SqlParameter("@builder", builder));
             }
 
             if (equipment != null && equipment.Length > 0)
             {
-                query = query.Where(x => x.Brochure != null && x.Brochure.Auto != null && x.Brochure.Auto.Equipment != null &&
-                    equipment.All(e => x.Brochure.Auto.Equipment.Contains(e)));
+                var equipmentConditions = string.Join(" OR ", equipment.Select((e, i) => $"y.Equipment LIKE @equipment{i}"));
+                sqlQuery.Append($" AND ({equipmentConditions})");
+                parameters.AddRange(equipment.Select((e, i) => new SqlParameter($"@equipment{i}", $"%{e}%")));
             }
 
-            // Execute the query and get the results
-            var yachts = query.ToList();
+            // Execute the query and get the results using raw SQL
+            var yachtDtos = workUnit.YachtRepository.ExecuteSqlQuery<YachtDto>(sqlQuery.ToString(), parameters.ToArray());
 
-            return Ok(yachts);
+            // Group and map the results
+            return Ok(yachtDtos.GroupBy(y => y.Id)
+                .Select(group => new Yacht
+                {
+                    Id = group.First().Id,
+                    Name = group.First().Name,
+                    Specification = new Specification
+                    {
+                        Type = group.First().Type,
+                        SubType = group.First().SubType,
+                        YearBuilt = group.First().YearBuilt,
+                        Builder = group.First().Builder,
+                        Length = group.First().Length,
+                        Guests = group.First().Guests,
+                        Cabins = group.First().Cabins,
+                        Flag = group.First().Flag,
+                        Port = group.First().Port,
+                        Superstructure = group.First().Superstructure,
+                        InteriorDesigner = group.First().InteriorDesigner,
+                        ExteriorDesigner = group.First().ExteriorDesigner,
+                        Crew = group.First().Crew,
+                        Beam = group.First().Beam,
+                        Draft = group.First().Draft,
+                        GrossTonnage = group.First().GrossTonnage,
+                        MaxSpeed = group.First().MaxSpeed,
+                        CruisingSpeed = group.First().CruisingSpeed,
+                        EnginePowerOutput = group.First().EnginePowerOutput,
+                        Model = group.First().Model,
+                        PropulsionType = group.First().PropulsionType,
+                        FuelCapacity = group.First().FuelCapacity
+                    },
+                    Media = new Media
+                    {
+                        Images = group.Select(y => new Image
+                        {
+                            Filename = y.Filename,
+                            PhotographerName = y.PhotographerName,
+                            Type = (ImageTypeEnum)y.ImageType,
+                            Url = y.Url
+                        }).ToList()
+                    }
+                }));
         }
 
-        //TODO: Delete me!
+
+
         [HttpGet]
         [Route("GetAllYachtNames")]
         public IActionResult GetAllYachtNames()
@@ -251,7 +377,7 @@ namespace AlexAPI.Controllers
             {
                 return Ok(workUnit.YachtRepository.Get().Select(x => new Tuple<string?, Guid>(
                     x.Name,
-                    x.Guid
+                    x.Id
                 )));
             }
             catch (Exception ex)
@@ -273,6 +399,7 @@ namespace AlexAPI.Controllers
                 return BadRequest(ex);
             }
         }
+        /*
 
         //TODO: Delete me!
         [HttpGet]
@@ -308,145 +435,136 @@ namespace AlexAPI.Controllers
             var result1 = await geminiAI.GetResponseAsync($"Can you create a description of the available equipment of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Equipment}");
             return Ok(result1.Replace("```html", "").Replace("```", ""));
         }
+        */
 
         //TODO: Delete me!
         [HttpPost]
         [Route("SuperYachtTimesImport")]
-        public IActionResult SYTest(IFormFile file)
+        public async Task<IActionResult> SuperYachtTimesImport(IFormFile file)
         {
-            var yachtsFromCSV = csvImportService.ReadSYTimesCSV(file);
+            var yachtsFromCSV = csvImportService.ReadSYTimesCSV(file).ToList();
             foreach (var csvYacht in yachtsFromCSV)
             {
-                var yacht = workUnit.YachtRepository.Get(x => x.Name.ToLower() == csvYacht.Title.ToLower()).FirstOrDefault();
-                if (yacht == null)
+                var yacht = new Yacht
                 {
-                    workUnit.YachtRepository.Insert(new Yacht
+                    Name = csvYacht.Title,
+                    Specification = new Specification
                     {
-                        Name = csvYacht.Title,
-                        Brochure = new YachtBrochure
+                        Type = csvYacht.Yacht_type.IsNullOrEmpty() ? "" : csvYacht.Yacht_type,
+                        SubType = csvYacht.Hull_Type.IsNullOrEmpty() ? "" : csvYacht.Hull_Type,
+                        YearBuilt = csvYacht.Year_Built.IsNullOrEmpty() ? 0 : csvYacht.Year_Built == "N/A" ? 0 : int.Parse(csvYacht.Year_Built),
+                        Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
+                        Length = csvYacht.Crew.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Length),
+                        Guests = csvYacht.Guests.IsNullOrEmpty() ? 0 : csvYacht.Guests == "N/A" ? 0 : int.Parse(csvYacht.Guests),
+                        Cabins = csvYacht.Crew_Cabins.IsNullOrEmpty() ? 0 : csvYacht.Crew_Cabins == "N/A" ? 0 : int.Parse(csvYacht.Crew_Cabins),
+                        Flag = csvYacht.Flag_Country.IsNullOrEmpty() ? "" : csvYacht.Flag_Country,
+                        Port = csvYacht.Port.IsNullOrEmpty() ? "" : csvYacht.Port,
+                        Superstructure = csvYacht.Superstructure.IsNullOrEmpty() ? "" : csvYacht.Superstructure,
+                        InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
+                        ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
+                        Crew = csvYacht.Crew.IsNullOrEmpty() ? 0 : csvYacht.Crew == "N/A" ? 0 : int.Parse(csvYacht.Crew),
+                        Beam = csvYacht.Beam.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Beam),
+                        Draft = csvYacht.Draft.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Draft),
+                        GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? 0 : ConvertToInt(csvYacht.Gross_Tonnage),
+                        MaxSpeed = csvYacht.Max_Speed.IsNullOrEmpty() ? 0 : ConvertToDecimal(csvYacht.Max_Speed),
+                        CruisingSpeed = csvYacht.Cruise_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruise_Speed == "N/A" ? 0 : decimal.Parse(csvYacht.Cruise_Speed.Split(" ")[0]),
+                        EnginePowerOutput = csvYacht.Total_Power_Output.IsNullOrEmpty() ? "" : csvYacht.Total_Power_Output,
+                        PropulsionType = csvYacht.Propulsion_Type.IsNullOrEmpty() ? "" : csvYacht.Propulsion_Type,
+                        FuelCapacity = csvYacht.Fuel_Capacity.IsNullOrEmpty() ? "" : csvYacht.Fuel_Capacity,
+                        PreviousNames = csvYacht.Previous_Names.IsNullOrEmpty() ? new List<PreviousName>() : csvYacht.Previous_Names.Split(", ").Select(x => new PreviousName { Name = x }).ToList(),
+                    }
+                };
+
+                HttpClient client = new HttpClient();
+                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36");
+
+                var imageAddress = $"https://www.superyachttimes.com/api/yacht-photos/{csvYacht.Title_URL.Split("/yachts/")[1]}";
+
+                var response = await client.GetAsync(imageAddress);
+                if (response.IsSuccessStatusCode)
+                {
+                    var responseData = await response.Content.ReadAsStringAsync();
+                    try
+                    {
+                        List<Image> images = new List<Image>();
+                        var imageListResponse = JsonSerializer.Deserialize<ImageListResponse>(responseData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        if(imageListResponse != null)
                         {
-                            Specifications = new Specifications
+
+                            if (imageListResponse.Primary != null)
                             {
-                                Length = csvYacht.Crew.IsNullOrEmpty() ? "" : csvYacht.Length,
-                                Beam = csvYacht.Beam.IsNullOrEmpty() ? "" : csvYacht.Beam,
-                                Draft = csvYacht.Draft.IsNullOrEmpty() ? "" : csvYacht.Draft,
-                                GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? 0 : csvYacht.Guests == "N/A" ? 0 : int.Parse(csvYacht.Guests),
-                                GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? "" : csvYacht.Gross_Tonnage,
-                                CruisingSpeed = csvYacht.Cruise_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruise_Speed == "N/A" ? 0 : decimal.Parse(csvYacht.Cruise_Speed.Split(" ")[0]),
-                                YearBuilt = csvYacht.Year_Built.IsNullOrEmpty() ? 0 : csvYacht.Year_Built == "N/A" ? 0 : int.Parse(csvYacht.Year_Built),
-                                Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
-                                ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
-                                InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
-                                Type = csvYacht.Yacht_type.IsNullOrEmpty() ? "" : csvYacht.Yacht_type,
-                                Port = csvYacht.Port.IsNullOrEmpty() ? "" : csvYacht.Port,
-                                MaxSpeed = csvYacht.Max_Speed.IsNullOrEmpty() ? "" : csvYacht.Max_Speed,
-                                TotalPowerOutput = csvYacht.Total_Power_Output.IsNullOrEmpty() ? "" : csvYacht.Total_Power_Output,
-                                PropulsionType = csvYacht.Propulsion_Type.IsNullOrEmpty() ? "" : csvYacht.Propulsion_Type,
-                                FuelCapacity = csvYacht.Fuel_Capacity.IsNullOrEmpty() ? "" : csvYacht.Fuel_Capacity,
+                                images.Add(new Image
+                                {
+                                    Type = ImageTypeEnum.Primary,
+                                    Url = $"https://photos.superyachtapi.com/download/{imageListResponse.Primary.Urls.ExtraLarge.Split("/")[1]}/large",
+                                    PhotographerName = imageListResponse.Primary.PhotographerName,
+                                    Filename = imageListResponse.Primary.Title
+                                });
                             }
-                        },
-                        Detail = new YachtDetail
-                        {
-                            TotalCrew = csvYacht.Crew.IsNullOrEmpty() ? 0 : csvYacht.Crew == "N/A" ? 0 : int.Parse(csvYacht.Crew),
-                            Cabins = csvYacht.Cabins.IsNullOrEmpty() ? 0 : csvYacht.Cabins == "N/A" ? 0 : int.Parse(csvYacht.Cabins)
+
+                            if (imageListResponse.Interior != null)
+                            {
+                                imageListResponse.Interior.ForEach(image =>
+                                {
+                                    images.Add(new Image
+                                    {
+                                        Type = ImageTypeEnum.Interior,
+                                        Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
+                                        PhotographerName = image.PhotographerName,
+                                        Filename = image.Title
+                                    });
+                                });
+                            }
+
+                            if (imageListResponse.Exterior != null)
+                            {
+                                imageListResponse.Exterior.ForEach(image =>
+                                {
+                                    images.Add(new Image
+                                    {
+                                        Type = ImageTypeEnum.Exterior,
+                                        Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
+                                        PhotographerName = image.PhotographerName,
+                                        Filename = image.Title
+                                    });
+                                });
+                            }
+
+                            if(imageListResponse.Other != null)
+                            {
+                                imageListResponse.Other.ForEach(image =>
+                                {
+                                    images.Add(new Image
+                                    {
+                                        Type = ImageTypeEnum.Other,
+                                        Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
+                                        PhotographerName = image.PhotographerName,
+                                        Filename = image.Title
+                                    });
+                                });
+                            }
                         }
-                    });
-                }
-                else
-                {
-                    if (yacht.Brochure == null)
-                    {
-                        yacht.Brochure = new YachtBrochure
+                        yacht.Media = new Media
                         {
-                            Specifications = new Specifications
-                            {
-                                Length = csvYacht.Crew.IsNullOrEmpty() ? "" : csvYacht.Length,
-                                Beam = csvYacht.Beam.IsNullOrEmpty() ? "" : csvYacht.Beam,
-                                Draft = csvYacht.Draft.IsNullOrEmpty() ? "" : csvYacht.Draft,
-                                GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? 0 : csvYacht.Guests == "N/A" ? 0 : int.Parse(csvYacht.Guests),
-                                GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? "" : csvYacht.Gross_Tonnage,
-                                CruisingSpeed = csvYacht.Cruise_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruise_Speed == "N/A" ? 0 : decimal.Parse(csvYacht.Cruise_Speed.Split(" ")[0]),
-                                YearBuilt = csvYacht.Year_Built.IsNullOrEmpty() ? 0 : csvYacht.Year_Built == "N/A" ? 0 : int.Parse(csvYacht.Year_Built),
-                                Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
-                                ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
-                                InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
-                                Type = csvYacht.Yacht_type.IsNullOrEmpty() ? "" : csvYacht.Yacht_type,
-                                Port = csvYacht.Port.IsNullOrEmpty() ? "" : csvYacht.Port,
-                                MaxSpeed = csvYacht.Max_Speed.IsNullOrEmpty() ? "" : csvYacht.Max_Speed,
-                                TotalPowerOutput = csvYacht.Total_Power_Output.IsNullOrEmpty() ? "" : csvYacht.Total_Power_Output,
-                                PropulsionType = csvYacht.Propulsion_Type.IsNullOrEmpty() ? "" : csvYacht.Propulsion_Type,
-                                FuelCapacity = csvYacht.Fuel_Capacity.IsNullOrEmpty() ? "" : csvYacht.Fuel_Capacity,
-                            }
+                            Images = images
                         };
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        if (yacht.Brochure.Specifications == null)
-                        {
-                            yacht.Brochure.Specifications = new Specifications
-                            {
-                                Length = csvYacht.Crew.IsNullOrEmpty() ? "" : csvYacht.Length,
-                                Beam = csvYacht.Beam.IsNullOrEmpty() ? "" : csvYacht.Beam,
-                                Draft = csvYacht.Draft.IsNullOrEmpty() ? "" : csvYacht.Draft,
-                                GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? 0 : csvYacht.Guests == "N/A" ? 0 : int.Parse(csvYacht.Guests),
-                                GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? "" : csvYacht.Gross_Tonnage,
-                                CruisingSpeed = csvYacht.Cruise_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruise_Speed == "N/A" ? 0 : decimal.Parse(csvYacht.Cruise_Speed.Split(" ")[0]),
-                                YearBuilt = csvYacht.Year_Built.IsNullOrEmpty() ? 0 : csvYacht.Year_Built == "N/A" ? 0 : int.Parse(csvYacht.Year_Built),
-                                Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
-                                ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
-                                InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
-                                Type = csvYacht.Yacht_type.IsNullOrEmpty() ? "" : csvYacht.Yacht_type,
-                                Port = csvYacht.Port.IsNullOrEmpty() ? "" : csvYacht.Port,
-                                MaxSpeed = csvYacht.Max_Speed.IsNullOrEmpty() ? "" : csvYacht.Max_Speed,
-                                TotalPowerOutput = csvYacht.Total_Power_Output.IsNullOrEmpty() ? "" : csvYacht.Total_Power_Output,
-                                PropulsionType = csvYacht.Propulsion_Type.IsNullOrEmpty() ? "" : csvYacht.Propulsion_Type,
-                                FuelCapacity = csvYacht.Fuel_Capacity.IsNullOrEmpty() ? "" : csvYacht.Fuel_Capacity,
-                            };
-                        }
-                        else
-                        {
-                            yacht.Brochure.Specifications.Length = csvYacht.Crew.IsNullOrEmpty() ? yacht.Brochure.Specifications.Length : csvYacht.Length;
-                            yacht.Brochure.Specifications.Beam = csvYacht.Beam.IsNullOrEmpty() ? yacht.Brochure.Specifications.Beam : csvYacht.Beam;
-                            yacht.Brochure.Specifications.Draft = csvYacht.Draft.IsNullOrEmpty() ? yacht.Brochure.Specifications.Draft : csvYacht.Draft;
-                            yacht.Brochure.Specifications.GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? yacht.Brochure.Specifications.GuestsCruising : csvYacht.Guests == "N/A" ? 0 : int.Parse(csvYacht.Guests);
-                            yacht.Brochure.Specifications.GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? yacht.Brochure.Specifications.GrossTonnage : csvYacht.Gross_Tonnage;
-                            yacht.Brochure.Specifications.CruisingSpeed = csvYacht.Cruise_Speed.IsNullOrEmpty() ? yacht.Brochure.Specifications.CruisingSpeed : csvYacht.Cruise_Speed == "N/A" ? 0 : decimal.Parse(csvYacht.Cruise_Speed.Split(" ")[0]);
-                            yacht.Brochure.Specifications.YearBuilt = csvYacht.Year_Built.IsNullOrEmpty() ? yacht.Brochure.Specifications.YearBuilt : csvYacht.Year_Built == "N/A" ? 0 : int.Parse(csvYacht.Year_Built);
-                            yacht.Brochure.Specifications.Builder = csvYacht.Builder.IsNullOrEmpty() ? yacht.Brochure.Specifications.Builder : csvYacht.Builder;
-                            yacht.Brochure.Specifications.ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? yacht.Brochure.Specifications.ExteriorDesigner : csvYacht.Exterior_Designer;
-                            yacht.Brochure.Specifications.InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? yacht.Brochure.Specifications.InteriorDesigner : csvYacht.Interior_Designer;
-                            yacht.Brochure.Specifications.Type = csvYacht.Yacht_type.IsNullOrEmpty() ? yacht.Brochure.Specifications.Type : csvYacht.Yacht_type;
-                            yacht.Brochure.Specifications.Port = csvYacht.Port.IsNullOrEmpty() ? yacht.Brochure.Specifications.Port : csvYacht.Port;
-                            yacht.Brochure.Specifications.MaxSpeed = csvYacht.Max_Speed.IsNullOrEmpty() ? yacht.Brochure.Specifications.MaxSpeed : csvYacht.Max_Speed;
-                            yacht.Brochure.Specifications.TotalPowerOutput = csvYacht.Total_Power_Output.IsNullOrEmpty() ? yacht.Brochure.Specifications.TotalPowerOutput : csvYacht.Total_Power_Output;
-                            yacht.Brochure.Specifications.PropulsionType = csvYacht.Propulsion_Type.IsNullOrEmpty() ? yacht.Brochure.Specifications.PropulsionType : csvYacht.Propulsion_Type;
-                            yacht.Brochure.Specifications.FuelCapacity = csvYacht.Fuel_Capacity.IsNullOrEmpty() ? yacht.Brochure.Specifications.FuelCapacity : csvYacht.Fuel_Capacity;
-                        }
                     }
-                    if (yacht.Detail == null)
-                    {
-                        yacht.Detail = new YachtDetail
-                        {
-                            TotalCrew = csvYacht.Crew.IsNullOrEmpty() ? 0 : csvYacht.Crew == "N/A" ? 0 : int.Parse(csvYacht.Crew),
-                            Cabins = csvYacht.Cabins.IsNullOrEmpty() ? 0 : csvYacht.Cabins == "N/A" ? 0 : int.Parse(csvYacht.Cabins),
-                        };
-                    }
-                    else
-                    {
-                        yacht.Detail.TotalCrew = csvYacht.Crew.IsNullOrEmpty() ? yacht.Detail.TotalCrew : csvYacht.Crew == "N/A" ? 0 : int.Parse(csvYacht.Crew);
-                        yacht.Detail.Cabins = csvYacht.Cabins.IsNullOrEmpty() ? yacht.Detail.Cabins : csvYacht.Cabins == "N/A" ? 0 : int.Parse(csvYacht.Cabins);
-                    }
-                    workUnit.YachtRepository.Update(yacht);
                 }
-            }
+                workUnit.YachtRepository.Insert(yacht);
+
+            };
             workUnit.Save();
             return Ok(yachtsFromCSV);
         }
 
+        /*
         //TODO: Delete me!
         [HttpPost]
         [Route("CharterWorldImport")]
-        public IActionResult CWTest(IFormFile file)
+        public IActionResult CharterWorldImport(IFormFile file)
         {
             var yachtDetails = csvImportService.ReadCWYachtsCSV(file);
             TextInfo textInfo = CultureInfo.CurrentCulture.TextInfo;
@@ -587,9 +705,9 @@ namespace AlexAPI.Controllers
                         {
                             yacht.Brochure.Auto.Equipment = csvYacht.Amenities_Entertainment.IsNullOrEmpty() ? yacht.Brochure.Auto.Equipment : csvYacht.Amenities_Entertainment;
                         }
-                        if(yacht.Brochure.Specifications == null)
+                        if(yacht.Specification == null)
                         {
-                            yacht.Brochure.Specifications = new Specifications
+                            yacht.Specification = new Specifications
                             {
                                 Length = csvYacht.Crew.IsNullOrEmpty() ? "" : csvYacht.Length,
                                 Beam = csvYacht.Beam.IsNullOrEmpty() ? "" : csvYacht.Beam,
@@ -607,18 +725,18 @@ namespace AlexAPI.Controllers
                         }
                         else
                         {
-                            yacht.Brochure.Specifications.Length = csvYacht.Crew.IsNullOrEmpty() ? yacht.Brochure.Specifications.Length : csvYacht.Length;
-                            yacht.Brochure.Specifications.Beam = csvYacht.Beam.IsNullOrEmpty() ? yacht.Brochure.Specifications.Beam : csvYacht.Beam;
-                            yacht.Brochure.Specifications.Draft = csvYacht.Draft.IsNullOrEmpty() ? yacht.Brochure.Specifications.Draft : csvYacht.Draft;
-                            yacht.Brochure.Specifications.GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? yacht.Brochure.Specifications.GuestsCruising : int.Parse(csvYacht.Guests);
-                            yacht.Brochure.Specifications.GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? yacht.Brochure.Specifications.GrossTonnage : csvYacht.Gross_Tonnage;
-                            yacht.Brochure.Specifications.CruisingSpeed = csvYacht.Cruising_Speed.IsNullOrEmpty() ? yacht.Brochure.Specifications.CruisingSpeed : csvYacht.Cruising_Speed == "-" ? 0 : decimal.Parse(csvYacht.Cruising_Speed.Split(" ")[0]);
-                            yacht.Brochure.Specifications.YearBuilt = csvYacht.Built.IsNullOrEmpty() ? yacht.Brochure.Specifications.YearBuilt : int.Parse(csvYacht.Built);
-                            yacht.Brochure.Specifications.Builder = csvYacht.Builder.IsNullOrEmpty() ? yacht.Brochure.Specifications.Builder : csvYacht.Builder;
-                            yacht.Brochure.Specifications.Model = csvYacht.Model.IsNullOrEmpty() ? yacht.Brochure.Specifications.Model : csvYacht.Model;
-                            yacht.Brochure.Specifications.ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? yacht.Brochure.Specifications.ExteriorDesigner : csvYacht.Exterior_Designer;
-                            yacht.Brochure.Specifications.InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? yacht.Brochure.Specifications.InteriorDesigner : csvYacht.Interior_Designer;
-                            yacht.Brochure.Specifications.Toys = csvYacht.Toys.IsNullOrEmpty() ? yacht.Brochure.Specifications.Toys : csvYacht.Toys;
+                            yacht.Specification.Length = csvYacht.Crew.IsNullOrEmpty() ? yacht.Specification.Length : csvYacht.Length;
+                            yacht.Specification.Beam = csvYacht.Beam.IsNullOrEmpty() ? yacht.Specification.Beam : csvYacht.Beam;
+                            yacht.Specification.Draft = csvYacht.Draft.IsNullOrEmpty() ? yacht.Specification.Draft : csvYacht.Draft;
+                            yacht.Specification.GuestsCruising = csvYacht.Guests.IsNullOrEmpty() ? yacht.Specification.GuestsCruising : int.Parse(csvYacht.Guests);
+                            yacht.Specification.GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? yacht.Specification.GrossTonnage : csvYacht.Gross_Tonnage;
+                            yacht.Specification.CruisingSpeed = csvYacht.Cruising_Speed.IsNullOrEmpty() ? yacht.Specification.CruisingSpeed : csvYacht.Cruising_Speed == "-" ? 0 : decimal.Parse(csvYacht.Cruising_Speed.Split(" ")[0]);
+                            yacht.Specification.YearBuilt = csvYacht.Built.IsNullOrEmpty() ? yacht.Specification.YearBuilt : int.Parse(csvYacht.Built);
+                            yacht.Specification.Builder = csvYacht.Builder.IsNullOrEmpty() ? yacht.Specification.Builder : csvYacht.Builder;
+                            yacht.Specification.Model = csvYacht.Model.IsNullOrEmpty() ? yacht.Specification.Model : csvYacht.Model;
+                            yacht.Specification.ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? yacht.Specification.ExteriorDesigner : csvYacht.Exterior_Designer;
+                            yacht.Specification.InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? yacht.Specification.InteriorDesigner : csvYacht.Interior_Designer;
+                            yacht.Specification.Toys = csvYacht.Toys.IsNullOrEmpty() ? yacht.Specification.Toys : csvYacht.Toys;
                         }
                     }
                     if(yacht.Detail == null)
@@ -647,6 +765,64 @@ namespace AlexAPI.Controllers
             }
             workUnit.Save();
             return Ok(yachtsFromCSV);
+        }
+        */
+        private decimal ConvertToMeters(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return 0;
+
+            value = value.Trim();
+
+            if (value.EndsWith(" m"))
+            {
+                if (decimal.TryParse(value.Replace(" m", ""), out var meters))
+                    return meters;
+            }
+            else if (value.EndsWith(" in"))
+            {
+                if (decimal.TryParse(value.Replace(" in", ""), out var inches))
+                    return inches * 0.0254m;
+            }
+            else if (value.Contains("'"))
+            {
+                var feetIndex = value.IndexOf('\'');
+                var feet = value.Substring(0, feetIndex);
+                var inches = value.Substring(feetIndex + 1).Replace(" in", "");
+
+                if (decimal.TryParse(feet, out var feetDecimal) && decimal.TryParse(inches, out var inchesDecimal))
+                    return (feetDecimal * 12 + inchesDecimal) * 0.0254m;
+            }
+            else if (decimal.TryParse(value, out var plainInches))
+            {
+                return plainInches * 0.0254m;
+            }
+
+            return 0;
+        }
+
+        private int ConvertToInt(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return 0;
+            value = value.Trim();
+            if (value.Equals("N/A", StringComparison.OrdinalIgnoreCase)) return 0;
+
+            if (int.TryParse(value, out var result))
+                return result;
+
+            return 0;
+        }
+
+        private decimal ConvertToDecimal(string value)
+        {
+            if (string.IsNullOrEmpty(value)) return 0;
+            value = value.Trim();
+            if (value.Equals("N/A", StringComparison.OrdinalIgnoreCase)) return 0;
+
+            var parts = value.Split(' ');
+            if (decimal.TryParse(parts[0], out var result))
+                return result;
+
+            return 0;
         }
     }
 }
