@@ -147,37 +147,9 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                var sqlQuery = new StringBuilder(@"SELECT ");
-
-                if (
-                    name == null &&
-                    type == null &&
-                    destination == null &&
-                    minPrice == null &&
-                    maxPrice == null &&
-                    minLength == null &&
-                    maxLength == null &&
-                    minGuests == null &&
-                    maxGuests == null &&
-                    minYearBuilt == null &&
-                    maxYearBuilt == null &&
-                    minCabins == null &&
-                    maxCabins == null &&
-                    minMaxSpeed == null &&
-                    maxMaxSpeed == null &&
-                    minGrossTonnage == null &&
-                    maxGrossTonnage == null &&
-                    minCruisingSpeed == null &&
-                    maxCruisingSpeed == null &&
-                    builder == null &&
-                    equipment == null
-                )
-                {
-                    sqlQuery.Append("TOP(6) ");
-                }
-
-                sqlQuery.Append(@"
-                        y.*,
+                var sqlQuery = new StringBuilder(@"
+                    SELECT    
+	                    y.*,
                         s.[Type],
                         s.[SubType],
                         s.[YearBuilt],
@@ -205,7 +177,40 @@ namespace AlexAPI.Controllers
                         i.[Type] AS [ImageType],
                         i.[Url]
                     FROM 
-                        Yachts y
+	                    Yachts y 
+                ");
+
+                if (
+                    name == null &&
+                    type == null &&
+                    destination == null &&
+                    minPrice == null &&
+                    maxPrice == null &&
+                    minLength == null &&
+                    maxLength == null &&
+                    minGuests == null &&
+                    maxGuests == null &&
+                    minYearBuilt == null &&
+                    maxYearBuilt == null &&
+                    minCabins == null &&
+                    maxCabins == null &&
+                    minMaxSpeed == null &&
+                    maxMaxSpeed == null &&
+                    minGrossTonnage == null &&
+                    maxGrossTonnage == null &&
+                    minCruisingSpeed == null &&
+                    maxCruisingSpeed == null &&
+                    builder == null &&
+                    equipment == null
+                )
+                {
+                    sqlQuery.Append(@"
+                        INNER JOIN 
+	                        (SELECT TOP(6) * FROM Yachts) featuredYachts ON featuredYachts.Id = y.Id 
+                    ");
+                }
+
+                sqlQuery.Append(@"
                     LEFT JOIN 
                         Specifications s ON y.SpecificationId = s.Id
                     LEFT JOIN 
