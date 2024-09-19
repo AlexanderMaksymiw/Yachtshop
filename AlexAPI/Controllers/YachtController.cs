@@ -123,32 +123,60 @@ namespace AlexAPI.Controllers
         [HttpPost]
         [Route("Get")]
         public IActionResult Get(
-    string? name = null,
-    string? type = null,
-    string? destination = null,
-    int? minPrice = null,
-    int? maxPrice = null,
-    int? minLength = null,
-    int? maxLength = null,
-    int? minGuests = null,
-    int? maxGuests = null,
-    int? minYearBuilt = null,
-    int? maxYearBuilt = null,
-    int? minCabins = null,
-    int? maxCabins = null,
-    int? minMaxSpeed = null,
-    int? maxMaxSpeed = null,
-    int? minGrossTonnage = null,
-    int? maxGrossTonnage = null,
-    int? minCruisingSpeed = null,
-    int? maxCruisingSpeed = null,
-    string? builder = null,
-    string[]? equipment = null)
+            string? name = null,
+            string? type = null,
+            string? destination = null,
+            int? minPrice = null,
+            int? maxPrice = null,
+            int? minLength = null,
+            int? maxLength = null,
+            int? minGuests = null,
+            int? maxGuests = null,
+            int? minYearBuilt = null,
+            int? maxYearBuilt = null,
+            int? minCabins = null,
+            int? maxCabins = null,
+            int? minMaxSpeed = null,
+            int? maxMaxSpeed = null,
+            int? minGrossTonnage = null,
+            int? maxGrossTonnage = null,
+            int? minCruisingSpeed = null,
+            int? maxCruisingSpeed = null,
+            string? builder = null,
+            string[]? equipment = null)
         {
             try
             {
-                var sqlQuery = new StringBuilder(@"
-                    SELECT 
+                var sqlQuery = new StringBuilder(@"SELECT ");
+
+                if (
+                    name == null &&
+                    type == null &&
+                    destination == null &&
+                    minPrice == null &&
+                    maxPrice == null &&
+                    minLength == null &&
+                    maxLength == null &&
+                    minGuests == null &&
+                    maxGuests == null &&
+                    minYearBuilt == null &&
+                    maxYearBuilt == null &&
+                    minCabins == null &&
+                    maxCabins == null &&
+                    minMaxSpeed == null &&
+                    maxMaxSpeed == null &&
+                    minGrossTonnage == null &&
+                    maxGrossTonnage == null &&
+                    minCruisingSpeed == null &&
+                    maxCruisingSpeed == null &&
+                    builder == null &&
+                    equipment == null
+                )
+                {
+                    sqlQuery.Append("TOP(6) ");
+                }
+
+                sqlQuery.Append(@"
                         y.*,
                         s.[Type],
                         s.[SubType],
@@ -326,7 +354,6 @@ namespace AlexAPI.Controllers
 
                 // Execute the query and get the results using raw SQL
                 var yachtDtos = workUnit.YachtRepository.ExecuteSqlQuery<YachtDto>(sqlQuery.ToString(), parameters.ToArray());
-
                 // Group and map the results
                 return Ok(yachtDtos.GroupBy(y => y.Id)
                     .Select(group => new Yacht
@@ -452,122 +479,130 @@ namespace AlexAPI.Controllers
         [Route("SuperYachtTimesImport")]
         public async Task<IActionResult> SuperYachtTimesImport(IFormFile file)
         {
-            var yachtsFromCSV = csvImportService.ReadSYTimesCSV(file).ToList();
-            foreach (var csvYacht in yachtsFromCSV)
+            try
             {
-                var yacht = new Yacht
+                var yachtsFromCSV = csvImportService.ReadSYTimesCSV(file).ToList();
+                foreach (var csvYacht in yachtsFromCSV)
                 {
-                    Name = csvYacht.Title,
-                    Specification = new Specification
+                    var yacht = new Yacht
                     {
-                        Type = csvYacht.Yacht_type.IsNullOrEmpty() ? "" : csvYacht.Yacht_type,
-                        SubType = csvYacht.Hull_Type.IsNullOrEmpty() ? "" : csvYacht.Hull_Type,
-                        YearBuilt = csvYacht.Year_Built.IsNullOrEmpty() ? 0 : csvYacht.Year_Built == "N/A" ? 0 : int.Parse(csvYacht.Year_Built),
-                        Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
-                        Length = csvYacht.Crew.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Length),
-                        Guests = csvYacht.Guests.IsNullOrEmpty() ? 0 : csvYacht.Guests == "N/A" ? 0 : int.Parse(csvYacht.Guests),
-                        Cabins = csvYacht.Crew_Cabins.IsNullOrEmpty() ? 0 : csvYacht.Crew_Cabins == "N/A" ? 0 : int.Parse(csvYacht.Crew_Cabins),
-                        Flag = csvYacht.Flag_Country.IsNullOrEmpty() ? "" : csvYacht.Flag_Country,
-                        Port = csvYacht.Port.IsNullOrEmpty() ? "" : csvYacht.Port,
-                        Superstructure = csvYacht.Superstructure.IsNullOrEmpty() ? "" : csvYacht.Superstructure,
-                        InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
-                        ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
-                        Crew = csvYacht.Crew.IsNullOrEmpty() ? 0 : csvYacht.Crew == "N/A" ? 0 : int.Parse(csvYacht.Crew),
-                        Beam = csvYacht.Beam.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Beam),
-                        Draft = csvYacht.Draft.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Draft),
-                        GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? 0 : ConvertToInt(csvYacht.Gross_Tonnage),
-                        MaxSpeed = csvYacht.Max_Speed.IsNullOrEmpty() ? 0 : ConvertToDecimal(csvYacht.Max_Speed),
-                        CruisingSpeed = csvYacht.Cruise_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruise_Speed == "N/A" ? 0 : decimal.Parse(csvYacht.Cruise_Speed.Split(" ")[0]),
-                        EnginePowerOutput = csvYacht.Total_Power_Output.IsNullOrEmpty() ? "" : csvYacht.Total_Power_Output,
-                        PropulsionType = csvYacht.Propulsion_Type.IsNullOrEmpty() ? "" : csvYacht.Propulsion_Type,
-                        FuelCapacity = csvYacht.Fuel_Capacity.IsNullOrEmpty() ? "" : csvYacht.Fuel_Capacity,
-                        PreviousNames = csvYacht.Previous_Names.IsNullOrEmpty() ? new List<PreviousName>() : csvYacht.Previous_Names.Split(", ").Select(x => new PreviousName { Name = x }).ToList(),
-                    }
-                };
-
-                HttpClient client = new HttpClient();
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36");
-
-                var imageAddress = $"https://www.superyachttimes.com/api/yacht-photos/{csvYacht.Title_URL.Split("/yachts/")[1]}";
-
-                var response = await client.GetAsync(imageAddress);
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseData = await response.Content.ReadAsStringAsync();
-                    try
-                    {
-                        List<Image> images = new List<Image>();
-                        var imageListResponse = JsonSerializer.Deserialize<ImageListResponse>(responseData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        if(imageListResponse != null)
+                        Name = csvYacht.Title,
+                        Specification = new Specification
                         {
-
-                            if (imageListResponse.Primary != null)
-                            {
-                                images.Add(new Image
-                                {
-                                    Type = ImageTypeEnum.Primary,
-                                    Url = $"https://photos.superyachtapi.com/download/{imageListResponse.Primary.Urls.ExtraLarge.Split("/")[1]}/large",
-                                    PhotographerName = imageListResponse.Primary.PhotographerName,
-                                    Filename = imageListResponse.Primary.Title
-                                });
-                            }
-
-                            if (imageListResponse.Interior != null)
-                            {
-                                imageListResponse.Interior.ForEach(image =>
-                                {
-                                    images.Add(new Image
-                                    {
-                                        Type = ImageTypeEnum.Interior,
-                                        Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
-                                        PhotographerName = image.PhotographerName,
-                                        Filename = image.Title
-                                    });
-                                });
-                            }
-
-                            if (imageListResponse.Exterior != null)
-                            {
-                                imageListResponse.Exterior.ForEach(image =>
-                                {
-                                    images.Add(new Image
-                                    {
-                                        Type = ImageTypeEnum.Exterior,
-                                        Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
-                                        PhotographerName = image.PhotographerName,
-                                        Filename = image.Title
-                                    });
-                                });
-                            }
-
-                            if(imageListResponse.Other != null)
-                            {
-                                imageListResponse.Other.ForEach(image =>
-                                {
-                                    images.Add(new Image
-                                    {
-                                        Type = ImageTypeEnum.Other,
-                                        Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
-                                        PhotographerName = image.PhotographerName,
-                                        Filename = image.Title
-                                    });
-                                });
-                            }
+                            Type = csvYacht.Yacht_type.IsNullOrEmpty() ? "" : csvYacht.Yacht_type,
+                            SubType = csvYacht.Hull_Type.IsNullOrEmpty() ? "" : csvYacht.Hull_Type,
+                            YearBuilt = csvYacht.Year_Built.IsNullOrEmpty() ? 0 : csvYacht.Year_Built == "N/A" ? 0 : int.Parse(csvYacht.Year_Built),
+                            Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
+                            Length = csvYacht.Crew.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Length),
+                            Guests = csvYacht.Guests.IsNullOrEmpty() ? 0 : csvYacht.Guests == "N/A" ? 0 : int.Parse(csvYacht.Guests),
+                            Cabins = csvYacht.Crew_Cabins.IsNullOrEmpty() ? 0 : csvYacht.Crew_Cabins == "N/A" ? 0 : int.Parse(csvYacht.Crew_Cabins),
+                            Flag = csvYacht.Flag_Country.IsNullOrEmpty() ? "" : csvYacht.Flag_Country,
+                            Port = csvYacht.Port.IsNullOrEmpty() ? "" : csvYacht.Port,
+                            Superstructure = csvYacht.Superstructure.IsNullOrEmpty() ? "" : csvYacht.Superstructure,
+                            InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
+                            ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
+                            Crew = csvYacht.Crew.IsNullOrEmpty() ? 0 : csvYacht.Crew == "N/A" ? 0 : int.Parse(csvYacht.Crew),
+                            Beam = csvYacht.Beam.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Beam),
+                            Draft = csvYacht.Draft.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Draft),
+                            GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? 0 : ConvertToInt(csvYacht.Gross_Tonnage),
+                            MaxSpeed = csvYacht.Max_Speed.IsNullOrEmpty() ? 0 : ConvertToDecimal(csvYacht.Max_Speed),
+                            CruisingSpeed = csvYacht.Cruise_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruise_Speed == "N/A" ? 0 : decimal.Parse(csvYacht.Cruise_Speed.Split(" ")[0]),
+                            EnginePowerOutput = csvYacht.Total_Power_Output.IsNullOrEmpty() ? "" : csvYacht.Total_Power_Output,
+                            PropulsionType = csvYacht.Propulsion_Type.IsNullOrEmpty() ? "" : csvYacht.Propulsion_Type,
+                            FuelCapacity = csvYacht.Fuel_Capacity.IsNullOrEmpty() ? "" : csvYacht.Fuel_Capacity,
+                            PreviousNames = csvYacht.Previous_Names.IsNullOrEmpty() ? new List<PreviousName>() : csvYacht.Previous_Names.Split(", ").Select(x => new PreviousName { Name = x }).ToList(),
                         }
-                        yacht.Media = new Media
-                        {
-                            Images = images
-                        };
-                    }
-                    catch (Exception ex)
-                    {
-                    }
-                }
-                workUnit.YachtRepository.Insert(yacht);
+                    };
 
-            };
-            workUnit.Save();
-            return Ok(yachtsFromCSV);
+                    HttpClient client = new HttpClient();
+                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36");
+
+                    var imageAddress = $"https://www.superyachttimes.com/api/yacht-photos/{csvYacht.Title_URL.Split("/yachts/")[1]}";
+
+                    var response = await client.GetAsync(imageAddress);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseData = await response.Content.ReadAsStringAsync();
+                        try
+                        {
+                            List<Image> images = new List<Image>();
+                            var imageListResponse = JsonSerializer.Deserialize<ImageListResponse>(responseData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            if (imageListResponse != null)
+                            {
+
+                                if (imageListResponse.Primary != null)
+                                {
+                                    images.Add(new Image
+                                    {
+                                        Type = ImageTypeEnum.Primary,
+                                        Url = $"https://photos.superyachtapi.com/download/{imageListResponse.Primary.Urls.ExtraLarge.Split("/")[1]}/large",
+                                        PhotographerName = imageListResponse.Primary.PhotographerName,
+                                        Filename = imageListResponse.Primary.Title
+                                    });
+                                }
+
+                                if (imageListResponse.Interior != null)
+                                {
+                                    imageListResponse.Interior.ForEach(image =>
+                                    {
+                                        images.Add(new Image
+                                        {
+                                            Type = ImageTypeEnum.Interior,
+                                            Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
+                                            PhotographerName = image.PhotographerName,
+                                            Filename = image.Title
+                                        });
+                                    });
+                                }
+
+                                if (imageListResponse.Exterior != null)
+                                {
+                                    imageListResponse.Exterior.ForEach(image =>
+                                    {
+                                        images.Add(new Image
+                                        {
+                                            Type = ImageTypeEnum.Exterior,
+                                            Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
+                                            PhotographerName = image.PhotographerName,
+                                            Filename = image.Title
+                                        });
+                                    });
+                                }
+
+                                if (imageListResponse.Other != null)
+                                {
+                                    imageListResponse.Other.ForEach(image =>
+                                    {
+                                        images.Add(new Image
+                                        {
+                                            Type = ImageTypeEnum.Other,
+                                            Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
+                                            PhotographerName = image.PhotographerName,
+                                            Filename = image.Title
+                                        });
+                                    });
+                                }
+                            }
+                            yacht.Media = new Media
+                            {
+                                Images = images
+                            };
+                        }
+                        catch (Exception ex)
+                        {
+                        }
+                    }
+                    workUnit.YachtRepository.Insert(yacht);
+
+                };
+                workUnit.Save();
+                return Ok(yachtsFromCSV);
+            }
+            catch(Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest();
+            }
         }
 
         /*
