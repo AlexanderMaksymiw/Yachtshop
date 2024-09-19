@@ -373,6 +373,7 @@ namespace AlexAPI.Controllers
             catch(Exception ex)
             {
                 telemetryClient.TrackException(ex);
+                return BadRequest();
             }
         }
 
