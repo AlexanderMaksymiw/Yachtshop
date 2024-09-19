@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using System.Text;
 using AlexAPI.ViewModels;
+using Microsoft.ApplicationInsights;
 
 namespace AlexAPI.Controllers
 {
@@ -22,14 +23,16 @@ namespace AlexAPI.Controllers
         private readonly YachtWorkUnit workUnit;
         private readonly ICSVImportService csvImportService;
         private readonly ILlamaService llamaAI;
+        private readonly TelemetryClient telemetryClient;
 
-        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVImportService csvImportService, ILlamaService llamaAI)
+        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVImportService csvImportService, ILlamaService llamaAI, TelemetryClient telemetryClient)
         {
             this.logger = logger;
             this.configuration = configuration;
             this.workUnit = workUnit;
             this.csvImportService = csvImportService;
             this.llamaAI = llamaAI;
+            this.telemetryClient = telemetryClient;
         }
         /*
         //TODO: Delete me!
@@ -369,7 +372,7 @@ namespace AlexAPI.Controllers
             }
             catch(Exception ex)
             {
-                return BadRequest(ex);
+                telemetryClient.TrackException(ex);
             }
         }
 
