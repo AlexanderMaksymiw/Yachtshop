@@ -142,229 +142,235 @@ namespace AlexAPI.Controllers
     string? builder = null,
     string[]? equipment = null)
         {
-            // Start building the SQL query
-            var sqlQuery = new StringBuilder(@"
-                SELECT 
-                    y.*,
-                    s.[Type],
-                    s.[SubType],
-                    s.[YearBuilt],
-                    s.[Builder],
-                    s.[Length],
-                    s.[Guests],
-                    s.[Cabins],
-                    s.[Flag],
-                    s.[Port],
-                    s.[Superstructure],
-                    s.[InteriorDesigner],
-                    s.[ExteriorDesigner],
-                    s.[Crew],
-                    s.[Beam],
-                    s.[Draft],
-                    s.[GrossTonnage],
-                    s.[MaxSpeed],
-                    s.[CruisingSpeed],
-                    s.[EnginePowerOutput],
-                    s.[Model],
-                    s.[PropulsionType],
-                    s.[FuelCapacity],
-                    i.[Filename],
-                    i.[PhotographerName],
-                    i.[Type] AS [ImageType],
-                    i.[Url]
-                FROM 
-                    Yachts y
-                LEFT JOIN 
-                    Specifications s ON y.SpecificationId = s.Id
-                LEFT JOIN 
-                    Media m ON y.MediaId = m.Id
-                LEFT JOIN 
-                    Images i ON i.MediaId = m.Id
-                LEFT JOIN 
-                    Prices p ON y.PriceId = p.Id
-                LEFT JOIN 
-                    LocationYacht ly ON y.Id = ly.YachtsId
-                LEFT JOIN 
-                    Locations l ON ly.LocationsId = l.Id
-                WHERE 1=1
-            ");
-
-            // List to hold SQL parameters
-            var parameters = new List<SqlParameter>();
-
-            // Append conditions based on parameters
-            if (!string.IsNullOrEmpty(name))
+            try
             {
-                sqlQuery.Append(" AND y.Name LIKE @name");
-                parameters.Add(new SqlParameter("@name", $"%{name}%"));
-            }
+                var sqlQuery = new StringBuilder(@"
+                    SELECT 
+                        y.*,
+                        s.[Type],
+                        s.[SubType],
+                        s.[YearBuilt],
+                        s.[Builder],
+                        s.[Length],
+                        s.[Guests],
+                        s.[Cabins],
+                        s.[Flag],
+                        s.[Port],
+                        s.[Superstructure],
+                        s.[InteriorDesigner],
+                        s.[ExteriorDesigner],
+                        s.[Crew],
+                        s.[Beam],
+                        s.[Draft],
+                        s.[GrossTonnage],
+                        s.[MaxSpeed],
+                        s.[CruisingSpeed],
+                        s.[EnginePowerOutput],
+                        s.[Model],
+                        s.[PropulsionType],
+                        s.[FuelCapacity],
+                        i.[Filename],
+                        i.[PhotographerName],
+                        i.[Type] AS [ImageType],
+                        i.[Url]
+                    FROM 
+                        Yachts y
+                    LEFT JOIN 
+                        Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN 
+                        Media m ON y.MediaId = m.Id
+                    LEFT JOIN 
+                        Images i ON i.MediaId = m.Id
+                    LEFT JOIN 
+                        Prices p ON y.PriceId = p.Id
+                    LEFT JOIN 
+                        LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN 
+                        Locations l ON ly.LocationsId = l.Id
+                    WHERE 1=1
+                ");
 
-            if (!string.IsNullOrEmpty(type))
-            {
-                sqlQuery.Append(" AND s.Type = @type");
-                parameters.Add(new SqlParameter("@type", type));
-            }
+                // List to hold SQL parameters
+                var parameters = new List<SqlParameter>();
 
-            if (!string.IsNullOrEmpty(destination))
-            {
-                sqlQuery.Append(" AND l.Name = @destination");
-                parameters.Add(new SqlParameter("@destination", destination));
-            }
-
-            if (minPrice.HasValue)
-            {
-                sqlQuery.Append(" AND p.Standard >= @minPrice");
-                parameters.Add(new SqlParameter("@minPrice", minPrice));
-            }
-
-            if (maxPrice.HasValue)
-            {
-                sqlQuery.Append(" AND p.Standard <= @maxPrice");
-                parameters.Add(new SqlParameter("@maxPrice", maxPrice));
-            }
-
-            if (minLength.HasValue)
-            {
-                sqlQuery.Append(" AND s.Length >= @minLength");
-                parameters.Add(new SqlParameter("@minLength", minLength));
-            }
-
-            if (maxLength.HasValue)
-            {
-                sqlQuery.Append(" AND s.Length <= @maxLength");
-                parameters.Add(new SqlParameter("@maxLength", maxLength));
-            }
-
-            if (minGuests.HasValue)
-            {
-                sqlQuery.Append(" AND s.Guests >= @minGuests");
-                parameters.Add(new SqlParameter("@minGuests", minGuests));
-            }
-
-            if (maxGuests.HasValue)
-            {
-                sqlQuery.Append(" AND s.Guests <= @maxGuests");
-                parameters.Add(new SqlParameter("@maxGuests", maxGuests));
-            }
-
-            if (minYearBuilt.HasValue)
-            {
-                sqlQuery.Append(" AND s.YearBuilt >= @minYearBuilt");
-                parameters.Add(new SqlParameter("@minYearBuilt", minYearBuilt));
-            }
-
-            if (maxYearBuilt.HasValue)
-            {
-                sqlQuery.Append(" AND s.YearBuilt <= @maxYearBuilt");
-                parameters.Add(new SqlParameter("@maxYearBuilt", maxYearBuilt));
-            }
-
-            if (minCabins.HasValue)
-            {
-                sqlQuery.Append(" AND s.Cabins >= @minCabins");
-                parameters.Add(new SqlParameter("@minCabins", minCabins));
-            }
-
-            if (maxCabins.HasValue)
-            {
-                sqlQuery.Append(" AND s.Cabins <= @maxCabins");
-                parameters.Add(new SqlParameter("@maxCabins", maxCabins));
-            }
-
-            if (minMaxSpeed.HasValue)
-            {
-                sqlQuery.Append(" AND s.MaxSpeed >= @minMaxSpeed");
-                parameters.Add(new SqlParameter("@minMaxSpeed", minMaxSpeed));
-            }
-
-            if (maxMaxSpeed.HasValue)
-            {
-                sqlQuery.Append(" AND s.MaxSpeed <= @maxMaxSpeed");
-                parameters.Add(new SqlParameter("@maxMaxSpeed", maxMaxSpeed));
-            }
-
-            if (minGrossTonnage.HasValue)
-            {
-                sqlQuery.Append(" AND s.GrossTonnage >= @minGrossTonnage");
-                parameters.Add(new SqlParameter("@minGrossTonnage", minGrossTonnage));
-            }
-
-            if (maxGrossTonnage.HasValue)
-            {
-                sqlQuery.Append(" AND s.GrossTonnage <= @maxGrossTonnage");
-                parameters.Add(new SqlParameter("@maxGrossTonnage", maxGrossTonnage));
-            }
-
-            if (minCruisingSpeed.HasValue)
-            {
-                sqlQuery.Append(" AND s.CruisingSpeed >= @minCruisingSpeed");
-                parameters.Add(new SqlParameter("@minCruisingSpeed", minCruisingSpeed));
-            }
-
-            if (maxCruisingSpeed.HasValue)
-            {
-                sqlQuery.Append(" AND s.CruisingSpeed <= @maxCruisingSpeed");
-                parameters.Add(new SqlParameter("@maxCruisingSpeed", maxCruisingSpeed));
-            }
-
-            if (!string.IsNullOrEmpty(builder))
-            {
-                sqlQuery.Append(" AND s.Builder = @builder");
-                parameters.Add(new SqlParameter("@builder", builder));
-            }
-
-            if (equipment != null && equipment.Length > 0)
-            {
-                var equipmentConditions = string.Join(" OR ", equipment.Select((e, i) => $"y.Equipment LIKE @equipment{i}"));
-                sqlQuery.Append($" AND ({equipmentConditions})");
-                parameters.AddRange(equipment.Select((e, i) => new SqlParameter($"@equipment{i}", $"%{e}%")));
-            }
-
-            // Execute the query and get the results using raw SQL
-            var yachtDtos = workUnit.YachtRepository.ExecuteSqlQuery<YachtDto>(sqlQuery.ToString(), parameters.ToArray());
-
-            // Group and map the results
-            return Ok(yachtDtos.GroupBy(y => y.Id)
-                .Select(group => new Yacht
+                // Append conditions based on parameters
+                if (!string.IsNullOrEmpty(name))
                 {
-                    Id = group.First().Id,
-                    Name = group.First().Name,
-                    Specification = new Specification
+                    sqlQuery.Append(" AND y.Name LIKE @name");
+                    parameters.Add(new SqlParameter("@name", $"%{name}%"));
+                }
+
+                if (!string.IsNullOrEmpty(type))
+                {
+                    sqlQuery.Append(" AND s.Type = @type");
+                    parameters.Add(new SqlParameter("@type", type));
+                }
+
+                if (!string.IsNullOrEmpty(destination))
+                {
+                    sqlQuery.Append(" AND l.Name = @destination");
+                    parameters.Add(new SqlParameter("@destination", destination));
+                }
+
+                if (minPrice.HasValue)
+                {
+                    sqlQuery.Append(" AND p.Standard >= @minPrice");
+                    parameters.Add(new SqlParameter("@minPrice", minPrice));
+                }
+
+                if (maxPrice.HasValue)
+                {
+                    sqlQuery.Append(" AND p.Standard <= @maxPrice");
+                    parameters.Add(new SqlParameter("@maxPrice", maxPrice));
+                }
+
+                if (minLength.HasValue)
+                {
+                    sqlQuery.Append(" AND s.Length >= @minLength");
+                    parameters.Add(new SqlParameter("@minLength", minLength));
+                }
+
+                if (maxLength.HasValue)
+                {
+                    sqlQuery.Append(" AND s.Length <= @maxLength");
+                    parameters.Add(new SqlParameter("@maxLength", maxLength));
+                }
+
+                if (minGuests.HasValue)
+                {
+                    sqlQuery.Append(" AND s.Guests >= @minGuests");
+                    parameters.Add(new SqlParameter("@minGuests", minGuests));
+                }
+
+                if (maxGuests.HasValue)
+                {
+                    sqlQuery.Append(" AND s.Guests <= @maxGuests");
+                    parameters.Add(new SqlParameter("@maxGuests", maxGuests));
+                }
+
+                if (minYearBuilt.HasValue)
+                {
+                    sqlQuery.Append(" AND s.YearBuilt >= @minYearBuilt");
+                    parameters.Add(new SqlParameter("@minYearBuilt", minYearBuilt));
+                }
+
+                if (maxYearBuilt.HasValue)
+                {
+                    sqlQuery.Append(" AND s.YearBuilt <= @maxYearBuilt");
+                    parameters.Add(new SqlParameter("@maxYearBuilt", maxYearBuilt));
+                }
+
+                if (minCabins.HasValue)
+                {
+                    sqlQuery.Append(" AND s.Cabins >= @minCabins");
+                    parameters.Add(new SqlParameter("@minCabins", minCabins));
+                }
+
+                if (maxCabins.HasValue)
+                {
+                    sqlQuery.Append(" AND s.Cabins <= @maxCabins");
+                    parameters.Add(new SqlParameter("@maxCabins", maxCabins));
+                }
+
+                if (minMaxSpeed.HasValue)
+                {
+                    sqlQuery.Append(" AND s.MaxSpeed >= @minMaxSpeed");
+                    parameters.Add(new SqlParameter("@minMaxSpeed", minMaxSpeed));
+                }
+
+                if (maxMaxSpeed.HasValue)
+                {
+                    sqlQuery.Append(" AND s.MaxSpeed <= @maxMaxSpeed");
+                    parameters.Add(new SqlParameter("@maxMaxSpeed", maxMaxSpeed));
+                }
+
+                if (minGrossTonnage.HasValue)
+                {
+                    sqlQuery.Append(" AND s.GrossTonnage >= @minGrossTonnage");
+                    parameters.Add(new SqlParameter("@minGrossTonnage", minGrossTonnage));
+                }
+
+                if (maxGrossTonnage.HasValue)
+                {
+                    sqlQuery.Append(" AND s.GrossTonnage <= @maxGrossTonnage");
+                    parameters.Add(new SqlParameter("@maxGrossTonnage", maxGrossTonnage));
+                }
+
+                if (minCruisingSpeed.HasValue)
+                {
+                    sqlQuery.Append(" AND s.CruisingSpeed >= @minCruisingSpeed");
+                    parameters.Add(new SqlParameter("@minCruisingSpeed", minCruisingSpeed));
+                }
+
+                if (maxCruisingSpeed.HasValue)
+                {
+                    sqlQuery.Append(" AND s.CruisingSpeed <= @maxCruisingSpeed");
+                    parameters.Add(new SqlParameter("@maxCruisingSpeed", maxCruisingSpeed));
+                }
+
+                if (!string.IsNullOrEmpty(builder))
+                {
+                    sqlQuery.Append(" AND s.Builder = @builder");
+                    parameters.Add(new SqlParameter("@builder", builder));
+                }
+
+                if (equipment != null && equipment.Length > 0)
+                {
+                    var equipmentConditions = string.Join(" OR ", equipment.Select((e, i) => $"y.Equipment LIKE @equipment{i}"));
+                    sqlQuery.Append($" AND ({equipmentConditions})");
+                    parameters.AddRange(equipment.Select((e, i) => new SqlParameter($"@equipment{i}", $"%{e}%")));
+                }
+
+                // Execute the query and get the results using raw SQL
+                var yachtDtos = workUnit.YachtRepository.ExecuteSqlQuery<YachtDto>(sqlQuery.ToString(), parameters.ToArray());
+
+                // Group and map the results
+                return Ok(yachtDtos.GroupBy(y => y.Id)
+                    .Select(group => new Yacht
                     {
-                        Type = group.First().Type,
-                        SubType = group.First().SubType,
-                        YearBuilt = group.First().YearBuilt,
-                        Builder = group.First().Builder,
-                        Length = group.First().Length,
-                        Guests = group.First().Guests,
-                        Cabins = group.First().Cabins,
-                        Flag = group.First().Flag,
-                        Port = group.First().Port,
-                        Superstructure = group.First().Superstructure,
-                        InteriorDesigner = group.First().InteriorDesigner,
-                        ExteriorDesigner = group.First().ExteriorDesigner,
-                        Crew = group.First().Crew,
-                        Beam = group.First().Beam,
-                        Draft = group.First().Draft,
-                        GrossTonnage = group.First().GrossTonnage,
-                        MaxSpeed = group.First().MaxSpeed,
-                        CruisingSpeed = group.First().CruisingSpeed,
-                        EnginePowerOutput = group.First().EnginePowerOutput,
-                        Model = group.First().Model,
-                        PropulsionType = group.First().PropulsionType,
-                        FuelCapacity = group.First().FuelCapacity
-                    },
-                    Media = new Media
-                    {
-                        Images = group.Select(y => new Image
+                        Id = group.First().Id,
+                        Name = group.First().Name,
+                        Specification = new Specification
                         {
-                            Filename = y.Filename,
-                            PhotographerName = y.PhotographerName,
-                            Type = (ImageTypeEnum)y.ImageType,
-                            Url = y.Url
-                        }).ToList()
-                    }
-                }));
+                            Type = group.First().Type,
+                            SubType = group.First().SubType,
+                            YearBuilt = group.First().YearBuilt,
+                            Builder = group.First().Builder,
+                            Length = group.First().Length,
+                            Guests = group.First().Guests,
+                            Cabins = group.First().Cabins,
+                            Flag = group.First().Flag,
+                            Port = group.First().Port,
+                            Superstructure = group.First().Superstructure,
+                            InteriorDesigner = group.First().InteriorDesigner,
+                            ExteriorDesigner = group.First().ExteriorDesigner,
+                            Crew = group.First().Crew,
+                            Beam = group.First().Beam,
+                            Draft = group.First().Draft,
+                            GrossTonnage = group.First().GrossTonnage,
+                            MaxSpeed = group.First().MaxSpeed,
+                            CruisingSpeed = group.First().CruisingSpeed,
+                            EnginePowerOutput = group.First().EnginePowerOutput,
+                            Model = group.First().Model,
+                            PropulsionType = group.First().PropulsionType,
+                            FuelCapacity = group.First().FuelCapacity
+                        },
+                        Media = new Media
+                        {
+                            Images = group.Select(y => new Image
+                            {
+                                Filename = y.Filename,
+                                PhotographerName = y.PhotographerName,
+                                Type = (ImageTypeEnum)y.ImageType,
+                                Url = y.Url
+                            }).ToList()
+                        }
+                    }));
+            }
+            catch(Exception ex)
+            {
+                return BadRequest(ex);
+            }
         }
 
 
