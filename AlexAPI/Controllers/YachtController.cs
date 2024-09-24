@@ -126,6 +126,7 @@ namespace AlexAPI.Controllers
             string? name = null,
             string? type = null,
             string? destination = null,
+            int? numResults = null,
             int? minPrice = null,
             int? maxPrice = null,
             int? minLength = null,
@@ -206,7 +207,7 @@ namespace AlexAPI.Controllers
                 {
                     sqlQuery.Append(@"
                         INNER JOIN 
-	                        (SELECT TOP(6) * FROM Yachts) featuredYachts ON featuredYachts.Id = y.Id 
+	                        (SELECT TOP(@numResults) * FROM Yachts) featuredYachts ON featuredYachts.Id = y.Id 
                     ");
                 }
 
@@ -227,7 +228,7 @@ namespace AlexAPI.Controllers
                 ");
 
                 // List to hold SQL parameters
-                var parameters = new List<SqlParameter>();
+                var parameters = new List<SqlParameter>([new SqlParameter("@numResults", numResults ?? int.MaxValue)]);
 
                 // Append conditions based on parameters
                 if (!string.IsNullOrEmpty(name))
