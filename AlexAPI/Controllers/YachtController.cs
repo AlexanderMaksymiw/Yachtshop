@@ -97,16 +97,12 @@ namespace AlexAPI.Controllers
                     minPrice == null &&
                     maxPrice == null &&
                     length == null &&
-                    length == null &&
                     guests == null &&
-                    yearBuilt == null &&
                     yearBuilt == null &&
                     cabins == null &&
                     maxSpeed == null &&
-                    maxSpeed == null &&
                     grossTonnage == null &&
                     grossTonnage == null &&
-                    cruisingSpeed == null &&
                     cruisingSpeed == null &&
                     subType == null &&
                     builder == null &&

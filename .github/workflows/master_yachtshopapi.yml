@@ -36,6 +36,7 @@ jobs:
         with:
           name: publish
           path: './publish'
+          retention-days: 3
 
   deploy:
     runs-on: windows-latest
