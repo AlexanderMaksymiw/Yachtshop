@@ -34,91 +34,6 @@ namespace AlexAPI.Controllers
             this.llamaAI = llamaAI;
             this.telemetryClient = telemetryClient;
         }
-        /*
-        //TODO: Delete me!
-        [HttpGet]
-        [Route("Populate")]
-        public async Task<IActionResult> PopulateDatabase()
-        {
-            HttpClient client = new HttpClient();
-            var baseAddress = configuration.GetValue<string>("Yachtfolio:BaseAddress");
-            var brochureBaseAddress = configuration.GetValue<string>("Yachtfolio:BrochureBaseAddress");
-            var apiKey = configuration.GetValue<string>("Yachtfolio:APIKey");
-
-            // Construct the full URL directly
-            var yachtListURL = $"{baseAddress}?type=list&passkey={apiKey}";
-            var response = await client.GetAsync(yachtListURL);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var responseData = await response.Content.ReadAsStringAsync();
-                try
-                {
-                    var yachtListResponse = JsonSerializer.Deserialize<YachtListResponse>(responseData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    foreach(var yacht in yachtListResponse.Data)
-                    {
-                        //Store Yacht Details
-                        var yachtDetailsURL = $"{baseAddress}?type=yachts&id_yacht={yacht.Id}&passkey={apiKey}";
-                        response = await client.GetAsync(yachtDetailsURL);
-                        var yachtDetail = new YachtDetail();
-                        var yachtBrochure = new YachtBrochure();
-                        if (response.IsSuccessStatusCode)
-                        {
-                            responseData = await response.Content.ReadAsStringAsync();
-                            var yachtDetailsResponse = JsonSerializer.Deserialize<YachtDetailResponse>(responseData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                            if (yachtDetailsResponse.Data.Count > 0) {
-                                yachtDetail = yachtDetailsResponse.Data.First();
-                                workUnit.YachtDetailRepository.Insert(yachtDetail);
-                            }
-                        }
-                        else
-                        {
-                            return StatusCode((int)response.StatusCode, response.ReasonPhrase);
-                        }
-
-                        //Store Yacht Brochure
-                        var yachtBrochureURL = $"{brochureBaseAddress}?&id_yacht={yacht.Id}&passkey={apiKey}";
-                        response = await client.GetAsync(yachtBrochureURL);
-                        if (response.IsSuccessStatusCode)
-                        {
-                            responseData = await response.Content.ReadAsStringAsync();
-                            yachtBrochure = JsonSerializer.Deserialize<YachtBrochure>(responseData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                            if (yachtBrochure != null)
-                            {
-                                workUnit.YachtBrochureRepository.Insert(yachtBrochure);
-                            }
-                        }
-                        else
-                        {
-                            return StatusCode((int)response.StatusCode, response.ReasonPhrase);
-                        }
-
-                        var yachtResult = new Yacht
-                        {
-                            Name = yacht.Name,
-                            RegistryPort = yacht.RegistryPort,
-                            Id = yacht.Id,
-                            Detail = yachtDetail,
-                            Brochure = yachtBrochure
-                        };
-                        //Store Yacht List
-                        workUnit.YachtRepository.Insert(yachtResult);
-                    }
-                    workUnit.Save();
-                    return Ok("Successfully populated the Database.");
-                }
-                catch (JsonException ex)
-                {
-                    logger.LogError(ex, "Error deserializing the JSON response.");
-                    return StatusCode(500, ex);
-                }
-            }
-            else
-            {
-                return StatusCode((int)response.StatusCode, response.ReasonPhrase);
-            }
-        }
-        */
 
         [HttpPost]
         [Route("Get")]
@@ -129,20 +44,14 @@ namespace AlexAPI.Controllers
             int? numResults = null,
             int? minPrice = null,
             int? maxPrice = null,
-            int? minLength = null,
-            int? maxLength = null,
-            int? minGuests = null,
-            int? maxGuests = null,
-            int? minYearBuilt = null,
-            int? maxYearBuilt = null,
-            int? minCabins = null,
-            int? maxCabins = null,
-            int? minMaxSpeed = null,
-            int? maxMaxSpeed = null,
-            int? minGrossTonnage = null,
-            int? maxGrossTonnage = null,
-            int? minCruisingSpeed = null,
-            int? maxCruisingSpeed = null,
+            int? length = null,
+            int? guests = null,
+            int? yearBuilt = null,
+            int? cabins = null,
+            int? maxSpeed = null,
+            int? grossTonnage = null,
+            int? cruisingSpeed = null,
+            string? subType = null,
             string? builder = null,
             string[]? equipment = null)
         {
@@ -189,18 +98,17 @@ namespace AlexAPI.Controllers
                     maxPrice == null &&
                     minLength == null &&
                     maxLength == null &&
-                    minGuests == null &&
-                    maxGuests == null &&
+                    guests == null &&
                     minYearBuilt == null &&
                     maxYearBuilt == null &&
-                    minCabins == null &&
-                    maxCabins == null &&
+                    cabins == null &&
                     minMaxSpeed == null &&
                     maxMaxSpeed == null &&
                     minGrossTonnage == null &&
                     maxGrossTonnage == null &&
                     minCruisingSpeed == null &&
                     maxCruisingSpeed == null &&
+                    subType == null &&
                     builder == null &&
                     equipment == null
                 )
@@ -261,88 +169,53 @@ namespace AlexAPI.Controllers
                     parameters.Add(new SqlParameter("@maxPrice", maxPrice));
                 }
 
-                if (minLength.HasValue)
-                {
-                    sqlQuery.Append(" AND s.Length >= @minLength");
-                    parameters.Add(new SqlParameter("@minLength", minLength));
+                if (length.HasValue)
+                { 
+                    sqlQuery.Append(" AND s.Length >= @length");
+                    parameters.Add(new SqlParameter("@length", length));
                 }
 
-                if (maxLength.HasValue)
+
+                if (guests.HasValue)
                 {
-                    sqlQuery.Append(" AND s.Length <= @maxLength");
-                    parameters.Add(new SqlParameter("@maxLength", maxLength));
+                    sqlQuery.Append(" AND s.Guests >= @guests");
+                    parameters.Add(new SqlParameter("@guests", guests));
                 }
 
-                if (minGuests.HasValue)
+                if (yearBuilt.HasValue)
                 {
-                    sqlQuery.Append(" AND s.Guests >= @minGuests");
-                    parameters.Add(new SqlParameter("@minGuests", minGuests));
+                    sqlQuery.Append(" AND s.YearBuilt >= @yearBuilt");
+                    parameters.Add(new SqlParameter("@yearBuilt", yearBuilt));
                 }
 
-                if (maxGuests.HasValue)
+                if (cabins.HasValue)
                 {
-                    sqlQuery.Append(" AND s.Guests <= @maxGuests");
-                    parameters.Add(new SqlParameter("@maxGuests", maxGuests));
+                    sqlQuery.Append(" AND s.Cabins >= @cabins");
+                    parameters.Add(new SqlParameter("@cabins", cabins));
                 }
 
-                if (minYearBuilt.HasValue)
+                if (maxSpeed.HasValue)
                 {
-                    sqlQuery.Append(" AND s.YearBuilt >= @minYearBuilt");
-                    parameters.Add(new SqlParameter("@minYearBuilt", minYearBuilt));
+                    sqlQuery.Append(" AND s.MaxSpeed >= @maxSpeed");
+                    parameters.Add(new SqlParameter("@maxSpeed", maxSpeed));
                 }
 
-                if (maxYearBuilt.HasValue)
+                if (grossTonnage.HasValue)
                 {
-                    sqlQuery.Append(" AND s.YearBuilt <= @maxYearBuilt");
-                    parameters.Add(new SqlParameter("@maxYearBuilt", maxYearBuilt));
+                    sqlQuery.Append(" AND s.GrossTonnage >= @grossTonnage");
+                    parameters.Add(new SqlParameter("@grossTonnage", grossTonnage));
                 }
 
-                if (minCabins.HasValue)
+                if (cruisingSpeed.HasValue)
                 {
-                    sqlQuery.Append(" AND s.Cabins >= @minCabins");
-                    parameters.Add(new SqlParameter("@minCabins", minCabins));
+                    sqlQuery.Append(" AND s.CruisingSpeed >= @cruisingSpeed");
+                    parameters.Add(new SqlParameter("@cruisingSpeed", cruisingSpeed));
                 }
 
-                if (maxCabins.HasValue)
+                if (!string.IsNullOrEmpty(subType))
                 {
-                    sqlQuery.Append(" AND s.Cabins <= @maxCabins");
-                    parameters.Add(new SqlParameter("@maxCabins", maxCabins));
-                }
-
-                if (minMaxSpeed.HasValue)
-                {
-                    sqlQuery.Append(" AND s.MaxSpeed >= @minMaxSpeed");
-                    parameters.Add(new SqlParameter("@minMaxSpeed", minMaxSpeed));
-                }
-
-                if (maxMaxSpeed.HasValue)
-                {
-                    sqlQuery.Append(" AND s.MaxSpeed <= @maxMaxSpeed");
-                    parameters.Add(new SqlParameter("@maxMaxSpeed", maxMaxSpeed));
-                }
-
-                if (minGrossTonnage.HasValue)
-                {
-                    sqlQuery.Append(" AND s.GrossTonnage >= @minGrossTonnage");
-                    parameters.Add(new SqlParameter("@minGrossTonnage", minGrossTonnage));
-                }
-
-                if (maxGrossTonnage.HasValue)
-                {
-                    sqlQuery.Append(" AND s.GrossTonnage <= @maxGrossTonnage");
-                    parameters.Add(new SqlParameter("@maxGrossTonnage", maxGrossTonnage));
-                }
-
-                if (minCruisingSpeed.HasValue)
-                {
-                    sqlQuery.Append(" AND s.CruisingSpeed >= @minCruisingSpeed");
-                    parameters.Add(new SqlParameter("@minCruisingSpeed", minCruisingSpeed));
-                }
-
-                if (maxCruisingSpeed.HasValue)
-                {
-                    sqlQuery.Append(" AND s.CruisingSpeed <= @maxCruisingSpeed");
-                    parameters.Add(new SqlParameter("@maxCruisingSpeed", maxCruisingSpeed));
+                    sqlQuery.Append(" AND s.SubType = @subType");
+                    parameters.Add(new SqlParameter("@subType", subType));
                 }
 
                 if (!string.IsNullOrEmpty(builder))
@@ -410,7 +283,25 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("GetDropdownChoices")]
+        public IActionResult GetDropdownChoices()
+        {
+            try
+            {
+                var destinations = workUnit.LocationRepository.Get();
+                return Ok(new DropdownChoices
+                {
+                    Destinations = destinations,
 
+                });
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
 
         [HttpGet]
         [Route("GetAllYachtNames")]
@@ -418,14 +309,15 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Select(x => new Tuple<string?, Guid>(
-                    x.Name,
-                    x.Id
+                return Ok(workUnit.YachtRepository.Get().Select(x => new Tuple<Guid, string>(
+                    x.Id,
+                    x.Name
                 )));
             }
             catch (Exception ex)
-            {
-                return BadRequest(ex);
+                {
+                    telemetryClient.TrackException(ex);
+                    return BadRequest(ex);
             }
         }
 
@@ -438,176 +330,9 @@ namespace AlexAPI.Controllers
                 return Ok(workUnit.YachtRepository.GetByID(id));
             }
             catch (Exception ex)
-            {
-                return BadRequest(ex);
-            }
-        }
-        /*
-
-        //TODO: Delete me!
-        [HttpGet]
-        [Route("GetBrochureById")]
-        public IActionResult GetBrochure(Guid id)
-        {
-            return Ok(workUnit.YachtRepository.GetByID(id).Brochure);
-        }
-
-        [HttpGet]
-        [Route("GetYachtImagesById")]
-        public IActionResult GetYachtImagesById(Guid id)
-        {
-            return Ok(workUnit.YachtRepository.GetByID(id).Brochure.Galleries.Full.Select(x => x.Url));
-        }
-
-        //TODO: Delete me!
-        [HttpGet]
-        [Route("GetYachtToys")]
-        public async Task<IActionResult> GetYachtToys(Guid id)
-        {
-            var yacht = workUnit.YachtRepository.GetByID(id);
-            var result1 = await geminiAI.GetResponseAsync($"Can you create a description of the available toys of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Toys}");
-            return Ok(result1.Replace("```html", "").Replace("```", ""));
-        }
-
-        //TODO: Delete me!
-        [HttpGet]
-        [Route("GetYachtEquipment")]
-        public async Task<IActionResult> GetYachtEquipment(Guid id)
-        {
-            var yacht = workUnit.YachtRepository.GetByID(id);
-            var result1 = await geminiAI.GetResponseAsync($"Can you create a description of the available equipment of the yacht {yacht.Name.ToUpper()} using these key features: \n{yacht.Brochure.Auto.Equipment}");
-            return Ok(result1.Replace("```html", "").Replace("```", ""));
-        }
-        */
-
-        //TODO: Delete me!
-        [HttpPost]
-        [Route("SuperYachtTimesImport")]
-        public async Task<IActionResult> SuperYachtTimesImport(IFormFile file)
-        {
-            try
-            {
-                var yachtsFromCSV = csvImportService.ReadSYTimesCSV(file).ToList();
-                foreach (var csvYacht in yachtsFromCSV)
                 {
-                    var yacht = new Yacht
-                    {
-                        Name = csvYacht.Title,
-                        Specification = new Specification
-                        {
-                            Type = csvYacht.Yacht_type.IsNullOrEmpty() ? "" : csvYacht.Yacht_type,
-                            SubType = csvYacht.Hull_Type.IsNullOrEmpty() ? "" : csvYacht.Hull_Type,
-                            YearBuilt = csvYacht.Year_Built.IsNullOrEmpty() ? 0 : csvYacht.Year_Built == "N/A" ? 0 : int.Parse(csvYacht.Year_Built),
-                            Builder = csvYacht.Builder.IsNullOrEmpty() ? "" : csvYacht.Builder,
-                            Length = csvYacht.Crew.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Length),
-                            Guests = csvYacht.Guests.IsNullOrEmpty() ? 0 : csvYacht.Guests == "N/A" ? 0 : int.Parse(csvYacht.Guests),
-                            Cabins = csvYacht.Crew_Cabins.IsNullOrEmpty() ? 0 : csvYacht.Crew_Cabins == "N/A" ? 0 : int.Parse(csvYacht.Crew_Cabins),
-                            Flag = csvYacht.Flag_Country.IsNullOrEmpty() ? "" : csvYacht.Flag_Country,
-                            Port = csvYacht.Port.IsNullOrEmpty() ? "" : csvYacht.Port,
-                            Superstructure = csvYacht.Superstructure.IsNullOrEmpty() ? "" : csvYacht.Superstructure,
-                            InteriorDesigner = csvYacht.Interior_Designer.IsNullOrEmpty() ? "" : csvYacht.Interior_Designer,
-                            ExteriorDesigner = csvYacht.Exterior_Designer.IsNullOrEmpty() ? "" : csvYacht.Exterior_Designer,
-                            Crew = csvYacht.Crew.IsNullOrEmpty() ? 0 : csvYacht.Crew == "N/A" ? 0 : int.Parse(csvYacht.Crew),
-                            Beam = csvYacht.Beam.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Beam),
-                            Draft = csvYacht.Draft.IsNullOrEmpty() ? 0 : ConvertToMeters(csvYacht.Draft),
-                            GrossTonnage = csvYacht.Gross_Tonnage.IsNullOrEmpty() ? 0 : ConvertToInt(csvYacht.Gross_Tonnage),
-                            MaxSpeed = csvYacht.Max_Speed.IsNullOrEmpty() ? 0 : ConvertToDecimal(csvYacht.Max_Speed),
-                            CruisingSpeed = csvYacht.Cruise_Speed.IsNullOrEmpty() ? 0 : csvYacht.Cruise_Speed == "N/A" ? 0 : decimal.Parse(csvYacht.Cruise_Speed.Split(" ")[0]),
-                            EnginePowerOutput = csvYacht.Total_Power_Output.IsNullOrEmpty() ? "" : csvYacht.Total_Power_Output,
-                            PropulsionType = csvYacht.Propulsion_Type.IsNullOrEmpty() ? "" : csvYacht.Propulsion_Type,
-                            FuelCapacity = csvYacht.Fuel_Capacity.IsNullOrEmpty() ? "" : csvYacht.Fuel_Capacity,
-                            PreviousNames = csvYacht.Previous_Names.IsNullOrEmpty() ? new List<PreviousName>() : csvYacht.Previous_Names.Split(", ").Select(x => new PreviousName { Name = x }).ToList(),
-                        }
-                    };
-
-                    HttpClient client = new HttpClient();
-                    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36");
-
-                    var imageAddress = $"https://www.superyachttimes.com/api/yacht-photos/{csvYacht.Title_URL.Split("/yachts/")[1]}";
-
-                    var response = await client.GetAsync(imageAddress);
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var responseData = await response.Content.ReadAsStringAsync();
-                        try
-                        {
-                            List<Image> images = new List<Image>();
-                            var imageListResponse = JsonSerializer.Deserialize<ImageListResponse>(responseData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                            if (imageListResponse != null)
-                            {
-
-                                if (imageListResponse.Primary != null)
-                                {
-                                    images.Add(new Image
-                                    {
-                                        Type = ImageTypeEnum.Primary,
-                                        Url = $"https://photos.superyachtapi.com/download/{imageListResponse.Primary.Urls.ExtraLarge.Split("/")[1]}/large",
-                                        PhotographerName = imageListResponse.Primary.PhotographerName,
-                                        Filename = imageListResponse.Primary.Title
-                                    });
-                                }
-
-                                if (imageListResponse.Interior != null)
-                                {
-                                    imageListResponse.Interior.ForEach(image =>
-                                    {
-                                        images.Add(new Image
-                                        {
-                                            Type = ImageTypeEnum.Interior,
-                                            Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
-                                            PhotographerName = image.PhotographerName,
-                                            Filename = image.Title
-                                        });
-                                    });
-                                }
-
-                                if (imageListResponse.Exterior != null)
-                                {
-                                    imageListResponse.Exterior.ForEach(image =>
-                                    {
-                                        images.Add(new Image
-                                        {
-                                            Type = ImageTypeEnum.Exterior,
-                                            Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
-                                            PhotographerName = image.PhotographerName,
-                                            Filename = image.Title
-                                        });
-                                    });
-                                }
-
-                                if (imageListResponse.Other != null)
-                                {
-                                    imageListResponse.Other.ForEach(image =>
-                                    {
-                                        images.Add(new Image
-                                        {
-                                            Type = ImageTypeEnum.Other,
-                                            Url = $"https://photos.superyachtapi.com/download/{image.Urls.ExtraLarge.Split("/")[1]}/large",
-                                            PhotographerName = image.PhotographerName,
-                                            Filename = image.Title
-                                        });
-                                    });
-                                }
-                            }
-                            yacht.Media = new Media
-                            {
-                                Images = images
-                            };
-                        }
-                        catch (Exception ex)
-                        {
-                        }
-                    }
-                    workUnit.YachtRepository.Insert(yacht);
-
-                };
-                workUnit.Save();
-                return Ok(yachtsFromCSV);
-            }
-            catch(Exception ex)
-            {
-                telemetryClient.TrackException(ex);
-                return BadRequest();
+                    telemetryClient.TrackException(ex);
+                    return BadRequest(ex);
             }
         }
 
