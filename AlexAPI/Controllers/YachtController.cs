@@ -579,7 +579,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Conversion"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubType == "Conversion"));
             }
             catch (Exception ex)
             {
@@ -609,7 +609,107 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard >= 0));
+                List<string> mediterraneanLocations =
+                new List<string>
+                {
+                    "Kos",
+                    "Ajaccio",
+                    "Sicily",
+                    "Aegean Islands",
+                    "Tropez",
+                    "Greece",
+                    "Procida",
+                    "Cannes",
+                    "Tuscany",
+                    "Paros",
+                    "Finike",
+                    "Liguria",
+                    "Vibo",
+                    "Spain",
+                    "Bodrum",
+                    "Camogli",
+                    "Slovenia",
+                    "Bitez",
+                    "Corsica",
+                    "Adriatic Sea",
+                    "Santorini",
+                    "Sukosan",
+                    "Ionian Islands",
+                    "Patmos",
+                    "Gibraltar",
+                    "Zadar",
+                    "Istanbul",
+                    "Fethiye",
+                    "Monaco",
+                    "Bonifacio",
+                    "Capri",
+                    "Gocek",
+                    "Mykonos",
+                    "Pula",
+                    "Skiathos",
+                    "Italy",
+                    "Lefkada",
+                    "French Riviera",
+                    "Albania",
+                    "Italian Riviera",
+                    "Cote d'Azur",
+                    "East Mediterranean",
+                    "Calvi",
+                    "Corfu",
+                    "Antibes",
+                    "Athens",
+                    "Tyrrhenian Sea",
+                    "Venice",
+                    "Bormes-les-mimosas",
+                    "Karapathos",
+                    "Malta",
+                    "Larges",
+                    "Kalamata",
+                    "Valencia",
+                    "Solenzara",
+                    "Trogir",
+                    "Naples",
+                    "Rhodes",
+                    "France",
+                    "Ibiza",
+                    "Elba",
+                    "Sardinia",
+                    "Jean Cap Ferrat",
+                    "Turkey",
+                    "Portofino",
+                    "Dodecanese",
+                    "Split",
+                    "Crete",
+                    "Palermo",
+                    "Canaray Islands",
+                    "Peloponnese",
+                    "Croatia",
+                    "Dubrovnik",
+                    "Propriano",
+                    "Saint Raphael",
+                    "Kefalonia",
+                    "Naples",
+                    "Marbella",
+                    "Balearic Islands",
+                    "Montenegro",
+                    "Palma",
+                    "Iles d'Hyeres",
+                    "Cyclades Islands",
+                    "Porto-Vecchio",
+                    "Morocco",
+                    "Amalfi Coast",
+                    "Marmaris"
+
+                 
+
+                };
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                        location => mediterraneanLocations.Any(
+                            medLocation => location.Name.Contains(medLocation)
+                            )
+                        )
+                    )
+                );
             }
             catch (Exception ex)
             {
