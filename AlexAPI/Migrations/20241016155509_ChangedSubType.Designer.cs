@@ -4,6 +4,7 @@ using AlexAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlexAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241016155509_ChangedSubType")]
+    partial class ChangedSubType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -602,12 +605,12 @@ namespace AlexAPI.Migrations
                     b.Property<Guid>("SpecificationsId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("SubTypesId")
+                    b.Property<Guid>("SubTypeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("SpecificationsId", "SubTypesId");
+                    b.HasKey("SpecificationsId", "SubTypeId");
 
-                    b.HasIndex("SubTypesId");
+                    b.HasIndex("SubTypeId");
 
                     b.ToTable("SpecificationSubType");
                 });
@@ -786,7 +789,7 @@ namespace AlexAPI.Migrations
 
                     b.HasOne("AlexAPI.Models.SubType", null)
                         .WithMany()
-                        .HasForeignKey("SubTypesId")
+                        .HasForeignKey("SubTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

@@ -30,6 +30,7 @@ namespace AlexAPI.Data
             modelBuilder.Entity<Image>().ToTable("Images");
             modelBuilder.Entity<Video>().ToTable("Videos");
             modelBuilder.Entity<Location>().ToTable("Locations");
+            modelBuilder.Entity<SubType>().ToTable("SubTypes");
             base.OnModelCreating(modelBuilder);
         }
     }

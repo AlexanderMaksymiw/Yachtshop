@@ -33,5 +33,13 @@ namespace AlexAPI.Services
                 return csv.GetRecords<YCFYachtsCSV>().ToList();
             }
         }
+        public IEnumerable<ShortSYTimesCSV> ReadShortSYTimesCSV(IFormFile file)
+        {
+            using (var reader = new StreamReader(file.OpenReadStream()))
+            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+            {
+                return csv.GetRecords<ShortSYTimesCSV>().ToList();
+            }
+        }
     }
 }

@@ -6,7 +6,7 @@ namespace AlexAPI.Models
     {
         public Guid Id { get; set; }
         public string? Type { get; set; }
-        public string? SubType { get; set; }
+        public string? HullType { get; set; }
         public int? YearBuilt { get; set; }
         public string? Builder { get; set; }
         public decimal? Length { get; set; }
@@ -27,6 +27,8 @@ namespace AlexAPI.Models
         public string? Model { get; set; }
         public string? PropulsionType { get; set; }
         public string? FuelCapacity { get; set; }
+        public string? Class { get; set; }
+        public virtual ICollection<SubType>? SubTypes { get; set; }
         public virtual ICollection<PreviousName>? PreviousNames { get; set; }
     }
 }

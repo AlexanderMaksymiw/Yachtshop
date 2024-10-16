@@ -4,6 +4,7 @@
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
+        public string SYTUrl { get; set; }
         public virtual Price Price { get; set; } = new Price();
         public virtual Specification Specification { get; set; } = new Specification();
         public virtual Amenities Amenities { get; set; } = new Amenities();
