@@ -202,7 +202,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Gulets"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")));
             }
             catch (Exception ex)
             {
@@ -217,7 +217,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Explorer"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")));
             }
             catch (Exception ex)
             {
@@ -232,7 +232,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Sport Fisherman"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")));
             }
             catch (Exception ex)
             {
@@ -277,7 +277,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Flybridge"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")));
             }
             catch (Exception ex)
             {
@@ -292,7 +292,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Sport Boat"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")));
             }
             catch (Exception ex)
             {
@@ -307,7 +307,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Maxi"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")));
             }
             catch (Exception ex)
             {
@@ -322,7 +322,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "J Class"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "J Class")));
             }
             catch (Exception ex)
             {
@@ -337,7 +337,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Motor Sailer"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Motor Sailer")));
             }
             catch (Exception ex)
             {
@@ -352,7 +352,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Support Yacht"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Support Yacht")));
             }
             catch (Exception ex)
             {
@@ -367,7 +367,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Conversion"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Conversion")));
             }
             catch (Exception ex)
             {
