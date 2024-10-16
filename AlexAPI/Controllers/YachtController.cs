@@ -99,9 +99,280 @@ namespace AlexAPI.Controllers
                 )));
             }
             catch (Exception ex)
-                {
-                    telemetryClient.TrackException(ex);
-                    return BadRequest(ex);
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetYachtsUnder50K")]
+        public IActionResult GetYachtsUnder50K()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard <= 50000));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetYachtsOver50K")]
+        public IActionResult GetYachtsOver50K()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard >= 50000));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetCharterYachts")]
+        public IActionResult GetCharterYachts()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard >= 0));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+
+        [HttpGet]
+        [Route("GetMotorYachts")]
+        public IActionResult GetMotorYachts()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.Type == "Motor"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetSailingYachts")]
+        public IActionResult GetSailingYachts()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.Type == "Sailing"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetCatamarans")]
+        public IActionResult GetCatamarans()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.HullType == "Catamaran"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetGulets")]
+        public IActionResult GetGulets()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Gulets"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetExplorers")]
+        public IActionResult GetExplorers()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Explorer"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetSportFisherman")]
+        public IActionResult GetSportFisherman()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Sport Fisherman"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetMonoHull")]
+        public IActionResult GetMonoHull()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.HullType == "Mono Hull"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetTrimaran")]
+        public IActionResult GetTrimaran()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.HullType == "Trimaran"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetFlybridge")]
+        public IActionResult GetFlybridge()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Flybridge"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetSportBoat")]
+        public IActionResult GetSportBoat()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Sport Boat"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetMaxi")]
+        public IActionResult GetMaxi()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Maxi"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetJClass")]
+        public IActionResult GetJClass()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "J Class"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetMotorSailers")]
+        public IActionResult GetMotorSailers()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Motor Sailer"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetSupportYachts")]
+        public IActionResult GetSupportYachts()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Support Yacht"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetConversion")]
+        public IActionResult GetConversion()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Conversion"));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
             }
         }
 
@@ -146,6 +417,21 @@ namespace AlexAPI.Controllers
             }
             workUnit.Save();
             return Ok();
+        }
+
+        [HttpGet]
+        [Route("GetMediterraneanYachts")]
+        public IActionResult GetMediterraneanYachts()
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard >= 0));
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
         }
 
         [HttpPost]
