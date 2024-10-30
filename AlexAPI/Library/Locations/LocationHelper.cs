@@ -154,7 +154,7 @@
             }
         }
 
-        public static List<string> TheMiddleEastLocations {
+        public static List<string> MiddleEastLocations {
             get
             {
                 return new List<string>

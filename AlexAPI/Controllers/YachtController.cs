@@ -487,6 +487,116 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("GetMiddleEastYachts")]
+        public IActionResult GetMiddleEastYachts()
+        {
+            try
+            {
+                List<string> MiddleEastLocations = LocationHelper.MiddleEastLocations;
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
+                            location => MiddleEastLocations.Any(
+                                MiddleEastLocation => location.Name.Contains(MiddleEastLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetIndianOceanYachts")]
+        public IActionResult GetIndianOceanYachts()
+        {
+            try
+            {
+                List<string> IndianOceanLocations = LocationHelper.IndianOceanLocations;
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
+                            location => IndianOceanLocations.Any(
+                                IndianOceanLocation => location.Name.Contains(IndianOceanLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetOceaniaYachts")]
+        public IActionResult GetOceaniaYachts()
+        {
+            try
+            {
+                List<string> OceaniaLocations = LocationHelper.OceaniaLocations;
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
+                            location => OceaniaLocations.Any(
+                                OceaniaLocation => location.Name.Contains(OceaniaLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetNorthandSouthAmericaYachts")]
+        public IActionResult GetNorthandSouthAmericaYachts()
+        {
+            try
+            {
+                List<string> NorthandSouthAmericaLocations = LocationHelper.NorthandSouthAmericaLocations;
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
+                            location => NorthandSouthAmericaLocations.Any(
+                                NorthandSouthAmericaLocation => location.Name.Contains(NorthandSouthAmericaLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetEuropeanYachts")]
+        public IActionResult GetEuropeanYachts()
+        {
+            try
+            {
+                List<string> EuropeanLocations = LocationHelper.EuropeanLocations;
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
+                            location => EuropeanLocations.Any(
+                                EuropeanLocation => location.Name.Contains(EuropeanLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
         [HttpPost]
         [Route("ImportHullType")]
         public IActionResult ImportHullType(IFormFile file)
