@@ -113,7 +113,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard <= 50000));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard <= 50000));
             }
             catch (Exception ex)
             {
@@ -128,7 +128,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard >= 50000));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 50000));
             }
             catch (Exception ex)
             {
@@ -143,7 +143,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard >= 0));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 0));
             }
             catch (Exception ex)
             {
@@ -159,7 +159,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.Type == "Motor"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Motor"));
             }
             catch (Exception ex)
             {
@@ -174,7 +174,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.Type == "Sailing"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Sailing"));
             }
             catch (Exception ex)
             {
@@ -189,7 +189,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.HullType == "Catamaran"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Catamaran"));
             }
             catch (Exception ex)
             {
@@ -204,7 +204,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")));
             }
             catch (Exception ex)
             {
@@ -219,7 +219,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")));
             }
             catch (Exception ex)
             {
@@ -234,7 +234,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")));
             }
             catch (Exception ex)
             {
@@ -249,7 +249,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.HullType == "Mono Hull"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Mono Hull"));
             }
             catch (Exception ex)
             {
@@ -264,7 +264,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.HullType == "Trimaran"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Trimaran"));
             }
             catch (Exception ex)
             {
@@ -279,7 +279,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")));
             }
             catch (Exception ex)
             {
@@ -294,7 +294,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")));
             }
             catch (Exception ex)
             {
@@ -309,7 +309,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")));
             }
             catch (Exception ex)
             {
@@ -324,7 +324,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "J Class")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "J Class")));
             }
             catch (Exception ex)
             {
@@ -339,7 +339,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Motor Sailer")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Motor Sailer")));
             }
             catch (Exception ex)
             {
@@ -354,7 +354,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Support Yacht")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Support Yacht")));
             }
             catch (Exception ex)
             {
@@ -428,7 +428,7 @@ namespace AlexAPI.Controllers
             try
             {
                 List<string> mediterraneanLocations = LocationHelper.MediterraneanLocations;
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                         location => mediterraneanLocations.Any(
                             medLocation => location.Name.Contains(medLocation)
                             )
@@ -450,7 +450,7 @@ namespace AlexAPI.Controllers
             try
             {
                 List<string> caribbeanLocations = LocationHelper.CaribbeanLocations;
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                         location => caribbeanLocations.Any(
                             caribLocation => location.Name.Contains(caribLocation)
                             )
@@ -472,7 +472,7 @@ namespace AlexAPI.Controllers
             try
             {
                 List<string> AsiaLocations = LocationHelper.AsiaLocations;
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                             location => AsiaLocations.Any(
                                 AsiaLocation => location.Name.Contains(AsiaLocation)
                             )
