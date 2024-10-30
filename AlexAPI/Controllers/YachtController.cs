@@ -655,7 +655,10 @@ namespace AlexAPI.Controllers
 
                 if (yacht != null)
                 {
-                    yacht.Locations = workUnit.LocationRepository.Get(x => locations.Select(location => location.ToLower()).Contains(x.Name.ToLower())).ToList();
+                    if(yacht.Locations != workUnit.LocationRepository.Get(x => locations.Select(location => location.ToLower()).Contains(x.Name.ToLower())).ToList())
+                    {
+                        yacht.Locations = workUnit.LocationRepository.Get(x => locations.Select(location => location.ToLower()).Contains(x.Name.ToLower())).ToList();
+                    }
                     yacht.Price.Standard = ConvertToDecimal(csvYacht.Price);
                     yacht.Price.Summer = ConvertToDecimal(csvYacht.Summer_Charter_Rates);
                     yacht.Price.Winter = ConvertToDecimal(csvYacht.Winter_Charter_Rates);
@@ -727,20 +730,22 @@ namespace AlexAPI.Controllers
         private decimal ConvertToDecimal(string value)
         {
             if (string.IsNullOrEmpty(value)) return 0;
-            value = value.Trim();
 
-            if (value.Equals("N/A", StringComparison.OrdinalIgnoreCase)) return 0;
+            // Regular expression to find the first numeric sequence that represents a price
+            var match = System.Text.RegularExpressions.Regex.Match(value, @"\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?\b");
 
-            var cleanedValue = System.Text.RegularExpressions.Regex.Replace(value, @"[^\d.,]", "");
+            if (match.Success)
+            {
+                // Get the matched price string and remove any commas
+                var cleanedValue = match.Value.Replace(",", "");
 
-            cleanedValue = cleanedValue.Replace(",", "");
-
-            if (decimal.TryParse(cleanedValue, out var result))
-                return result;
+                // Try parsing the cleaned value to decimal
+                if (decimal.TryParse(cleanedValue, out var result))
+                    return result;
+            }
 
             return 0;
         }
-
 
         private List<string> ConvertToCleanSubTypes(string value)
         {
