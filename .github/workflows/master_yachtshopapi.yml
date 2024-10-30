@@ -53,7 +53,7 @@ jobs:
         run: |
           find ./publish -type f | while read file; do
             curl --ftp-ssl -T "$file" \
-              --url ftps://access1024699194.webspace-data.io:990/<path_to_target_folder>/ \
+              --url ftps://access1024699194.webspace-data.io:990/API/ \
               --user "$FTP_USERNAME:$FTP_PASSWORD"
           done
         shell: bash
