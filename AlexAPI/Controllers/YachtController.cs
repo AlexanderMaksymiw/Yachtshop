@@ -473,8 +473,8 @@ namespace AlexAPI.Controllers
             {
                 List<string> AsiaLocations = LocationHelper.AsiaLocations;
                 return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
-                        location => AsiaLocations.Any(
-                            AsiaLocation => location.Name.Contains(AsiaLocations)
+                            location => AsiaLocations.Any(
+                                AsiaLocation => location.Name.Contains(AsiaLocation)
                             )
                         )
                     )
