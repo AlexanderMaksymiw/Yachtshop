@@ -51,9 +51,8 @@ jobs:
           FTP_USERNAME: u118215671
           FTP_PASSWORD: ${{ secrets.FTP }}
         run: |
-          find ./publish -type f | while read file; do
-            curl --ftp-ssl -T "$file" \
-              --url ftps://access1024699194.webspace-data.io:990/API/ \
-              --user "$FTP_USERNAME:$FTP_PASSWORD"
-          done
+          find ./publish -type f | xargs -I {} curl --ftp-ssl --ftp-ssl-reqd -v \
+            --user "$FTP_USERNAME:$FTP_PASSWORD" \
+            --upload-file "{}" \
+            "ftps://access1024699194.webspace-data.io:990/API/"
         shell: bash
