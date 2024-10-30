@@ -12,6 +12,7 @@ using System.Text;
 using AlexAPI.ViewModels;
 using Microsoft.ApplicationInsights;
 using System.Linq.Expressions;
+using AlexAPI.Library.Locations;
 
 namespace AlexAPI.Controllers
 {
@@ -368,7 +369,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Conversion")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Conversion")));
             }
             catch (Exception ex)
             {
@@ -426,7 +427,58 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Price.Standard >= 0));
+                List<string> mediterraneanLocations = LocationHelper.MediterraneanLocations;
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                        location => mediterraneanLocations.Any(
+                            medLocation => location.Name.Contains(medLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetCaribbeanYachts")]
+        public IActionResult GetCaribbeanYachts()
+        {
+            try
+            {
+                List<string> caribbeanLocations = LocationHelper.CaribbeanLocations;
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                        location => caribbeanLocations.Any(
+                            caribLocation => location.Name.Contains(caribLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetAsiaYachts")]
+        public IActionResult GetAsiaYachts()
+        {
+            try
+            {
+                List<string> AsiaLocations = LocationHelper.AsiaLocations;
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                        location => AsiaLocations.Any(
+                            AsiaLocation => location.Name.Contains(AsiaLocations)
+                            )
+                        )
+                    )
+                );
             }
             catch (Exception ex)
             {

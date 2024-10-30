@@ -6,6 +6,7 @@ namespace AlexAPI.Models
     {
         public Guid Id { get; set; }
         public string? Type { get; set; }
+        public string? SubType { get; set; }
         public string? HullType { get; set; }
         public int? YearBuilt { get; set; }
         public string? Builder { get; set; }
