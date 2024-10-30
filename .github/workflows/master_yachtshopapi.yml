@@ -54,6 +54,6 @@ jobs:
           find ./publish -type f | while read file; do
             curl --ftp-ssl -T "$file" \
               --url ftps://access1024699194.webspace-data.io:990/API/ \
-              --user "$FTP_USERNAME:$FTP_PASSWORD"
+              --user "$FTP_USERNAME:$FTP_PASSWORD" -v
           done
         shell: bash
