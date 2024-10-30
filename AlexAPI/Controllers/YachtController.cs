@@ -11,6 +11,7 @@ using Microsoft.Data.SqlClient;
 using System.Text;
 using AlexAPI.ViewModels;
 using Microsoft.ApplicationInsights;
+using System.Linq.Expressions;
 using AlexAPI.Library.Locations;
 
 namespace AlexAPI.Controllers
@@ -53,225 +54,13 @@ namespace AlexAPI.Controllers
             int? grossTonnage = null,
             int? cruisingSpeed = null,
             string? subType = null,
+            string? hullType = null,
             string? builder = null,
             string[]? equipment = null)
         {
             try
             {
-                var sqlQuery = new StringBuilder(@"
-                    SELECT    
-	                    y.*,
-                        s.[Type],
-                        s.[SubType],
-                        s.[YearBuilt],
-                        s.[Builder],
-                        s.[Length],
-                        s.[Guests],
-                        s.[Cabins],
-                        s.[Flag],
-                        s.[Port],
-                        s.[Superstructure],
-                        s.[InteriorDesigner],
-                        s.[ExteriorDesigner],
-                        s.[Crew],
-                        s.[Beam],
-                        s.[Draft],
-                        s.[GrossTonnage],
-                        s.[MaxSpeed],
-                        s.[CruisingSpeed],
-                        s.[EnginePowerOutput],
-                        s.[Model],
-                        s.[PropulsionType],
-                        s.[FuelCapacity],
-                        i.[Filename],
-                        i.[PhotographerName],
-                        i.[Type] AS [ImageType],
-                        i.[Url]
-                    FROM 
-	                    Yachts y 
-                ");
-
-                if (
-                    name == null &&
-                    type == null &&
-                    destination == null &&
-                    minPrice == null &&
-                    maxPrice == null &&
-                    length == null &&
-                    guests == null &&
-                    yearBuilt == null &&
-                    cabins == null &&
-                    maxSpeed == null &&
-                    grossTonnage == null &&
-                    grossTonnage == null &&
-                    cruisingSpeed == null &&
-                    subType == null &&
-                    builder == null &&
-                    equipment == null
-                )
-                {
-                    sqlQuery.Append(@"
-                        INNER JOIN 
-	                        (SELECT TOP(@numResults) * FROM Yachts) featuredYachts ON featuredYachts.Id = y.Id 
-                    ");
-                }
-
-                sqlQuery.Append(@"
-                    LEFT JOIN 
-                        Specifications s ON y.SpecificationId = s.Id
-                    LEFT JOIN 
-                        Media m ON y.MediaId = m.Id
-                    LEFT JOIN 
-                        Images i ON i.MediaId = m.Id
-                    LEFT JOIN 
-                        Prices p ON y.PriceId = p.Id
-                    LEFT JOIN 
-                        LocationYacht ly ON y.Id = ly.YachtsId
-                    LEFT JOIN 
-                        Locations l ON ly.LocationsId = l.Id
-                    WHERE 1=1
-                ");
-
-                // List to hold SQL parameters
-                var parameters = new List<SqlParameter>([new SqlParameter("@numResults", numResults ?? int.MaxValue)]);
-
-                // Append conditions based on parameters
-                if (!string.IsNullOrEmpty(name))
-                {
-                    sqlQuery.Append(" AND y.Name LIKE @name");
-                    parameters.Add(new SqlParameter("@name", $"%{name}%"));
-                }
-
-                if (!string.IsNullOrEmpty(type))
-                {
-                    sqlQuery.Append(" AND s.Type = @type");
-                    parameters.Add(new SqlParameter("@type", type));
-                }
-
-                if (!string.IsNullOrEmpty(destination))
-                {
-                    sqlQuery.Append(" AND l.Name = @destination");
-                    parameters.Add(new SqlParameter("@destination", destination));
-                }
-
-                if (minPrice.HasValue)
-                {
-                    sqlQuery.Append(" AND p.Standard >= @minPrice");
-                    parameters.Add(new SqlParameter("@minPrice", minPrice));
-                }
-
-                if (maxPrice.HasValue)
-                {
-                    sqlQuery.Append(" AND p.Standard <= @maxPrice");
-                    parameters.Add(new SqlParameter("@maxPrice", maxPrice));
-                }
-
-                if (length.HasValue)
-                { 
-                    sqlQuery.Append(" AND s.Length >= @length");
-                    parameters.Add(new SqlParameter("@length", length));
-                }
-
-
-                if (guests.HasValue)
-                {
-                    sqlQuery.Append(" AND s.Guests >= @guests");
-                    parameters.Add(new SqlParameter("@guests", guests));
-                }
-
-                if (yearBuilt.HasValue)
-                {
-                    sqlQuery.Append(" AND s.YearBuilt >= @yearBuilt");
-                    parameters.Add(new SqlParameter("@yearBuilt", yearBuilt));
-                }
-
-                if (cabins.HasValue)
-                {
-                    sqlQuery.Append(" AND s.Cabins >= @cabins");
-                    parameters.Add(new SqlParameter("@cabins", cabins));
-                }
-
-                if (maxSpeed.HasValue)
-                {
-                    sqlQuery.Append(" AND s.MaxSpeed >= @maxSpeed");
-                    parameters.Add(new SqlParameter("@maxSpeed", maxSpeed));
-                }
-
-                if (grossTonnage.HasValue)
-                {
-                    sqlQuery.Append(" AND s.GrossTonnage >= @grossTonnage");
-                    parameters.Add(new SqlParameter("@grossTonnage", grossTonnage));
-                }
-
-                if (cruisingSpeed.HasValue)
-                {
-                    sqlQuery.Append(" AND s.CruisingSpeed >= @cruisingSpeed");
-                    parameters.Add(new SqlParameter("@cruisingSpeed", cruisingSpeed));
-                }
-
-                if (!string.IsNullOrEmpty(subType))
-                {
-                    sqlQuery.Append(" AND s.SubType = @subType");
-                    parameters.Add(new SqlParameter("@subType", subType));
-                }
-
-                if (!string.IsNullOrEmpty(builder))
-                {
-                    sqlQuery.Append(" AND s.Builder = @builder");
-                    parameters.Add(new SqlParameter("@builder", builder));
-                }
-
-                if (equipment != null && equipment.Length > 0)
-                {
-                    var equipmentConditions = string.Join(" OR ", equipment.Select((e, i) => $"y.Equipment LIKE @equipment{i}"));
-                    sqlQuery.Append($" AND ({equipmentConditions})");
-                    parameters.AddRange(equipment.Select((e, i) => new SqlParameter($"@equipment{i}", $"%{e}%")));
-                }
-
-                // Execute the query and get the results using raw SQL
-                var yachtDtos = workUnit.YachtRepository.ExecuteSqlQuery<YachtDto>(sqlQuery.ToString(), parameters.ToArray());
-                // Group and map the results
-                return Ok(yachtDtos.GroupBy(y => y.Id)
-                    .Select(group => new Yacht
-                    {
-                        Id = group.First().Id,
-                        Name = group.First().Name,
-                        Specification = new Specification
-                        {
-                            Type = group.First().Type,
-                            SubType = group.First().SubType,
-                            YearBuilt = group.First().YearBuilt,
-                            Builder = group.First().Builder,
-                            Length = group.First().Length,
-                            Guests = group.First().Guests,
-                            Cabins = group.First().Cabins,
-                            Flag = group.First().Flag,
-                            Port = group.First().Port,
-                            Superstructure = group.First().Superstructure,
-                            InteriorDesigner = group.First().InteriorDesigner,
-                            ExteriorDesigner = group.First().ExteriorDesigner,
-                            Crew = group.First().Crew,
-                            Beam = group.First().Beam,
-                            Draft = group.First().Draft,
-                            GrossTonnage = group.First().GrossTonnage,
-                            MaxSpeed = group.First().MaxSpeed,
-                            CruisingSpeed = group.First().CruisingSpeed,
-                            EnginePowerOutput = group.First().EnginePowerOutput,
-                            Model = group.First().Model,
-                            PropulsionType = group.First().PropulsionType,
-                            FuelCapacity = group.First().FuelCapacity
-                        },
-                        Media = new Media
-                        {
-                            Images = group.Select(y => new Image
-                            {
-                                Filename = y.Filename,
-                                PhotographerName = y.PhotographerName,
-                                Type = (ImageTypeEnum)y.ImageType,
-                                Url = y.Url
-                            }).ToList()
-                        }
-                    }));
+                return Ok(GetYachts(name, type, destination, numResults, minPrice, maxPrice, length, guests, yearBuilt, cabins, maxSpeed, grossTonnage, cruisingSpeed, subType, hullType, builder, equipment));
             }
             catch(Exception ex)
             {
@@ -415,7 +204,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Gulets"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")));
             }
             catch (Exception ex)
             {
@@ -430,7 +219,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Explorer"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")));
             }
             catch (Exception ex)
             {
@@ -445,7 +234,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Sport Fisherman"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")));
             }
             catch (Exception ex)
             {
@@ -490,7 +279,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Flybridge"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")));
             }
             catch (Exception ex)
             {
@@ -505,7 +294,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Sport Boat"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")));
             }
             catch (Exception ex)
             {
@@ -520,7 +309,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Maxi"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")));
             }
             catch (Exception ex)
             {
@@ -535,7 +324,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "J Class"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "J Class")));
             }
             catch (Exception ex)
             {
@@ -550,7 +339,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Motor Sailer"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Motor Sailer")));
             }
             catch (Exception ex)
             {
@@ -565,7 +354,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubType == "Support Yacht"));
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Support Yacht")));
             }
             catch (Exception ex)
             {
@@ -580,7 +369,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubType == "Conversion"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Conversion")));
             }
             catch (Exception ex)
             {
@@ -602,6 +391,34 @@ namespace AlexAPI.Controllers
                     telemetryClient.TrackException(ex);
                     return BadRequest(ex);
             }
+        }
+
+        [HttpPost]
+        [Route("ImportTitleUrl")]
+        public IActionResult ImportTitleUrl(IFormFile file)
+        {
+            var import = csvImportService.ReadSYTimesCSV(file);
+            foreach (var item in import)
+            {
+                var yachts = workUnit.YachtRepository.Get(y => y.Name == item.Title && y.Specification.Length == ConvertToMeters(item.Length) && y.Specification.Type == item.Yacht_type && y.Specification.YearBuilt == ConvertToInt(item.Year_Built));
+                Yacht yacht;
+                if(yachts == null)
+                {
+                    return BadRequest(item);
+                }
+                else if(yachts.Count() > 1)
+                {
+                    for (int i = 1; i < yachts.Count(); i++)
+                    {
+                        workUnit.YachtRepository.Delete(yachts.ElementAt(i));
+                    }
+                }
+                yacht = yachts.First();
+                yacht.SYTUrl = item.Title_URL;
+                workUnit.YachtRepository.Update(yacht);
+            }
+            workUnit.Save();
+            return Ok();
         }
 
         [HttpGet]
@@ -670,6 +487,31 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("ImportHullType")]
+        public IActionResult ImportHullType(IFormFile file)
+        {
+            var import = csvImportService.ReadShortSYTimesCSV(file);
+            List<string> missingURLs = new List<string>();
+            foreach (var item in import)
+            {
+                var yacht = workUnit.YachtRepository.Get(filter: y => y.SYTUrl == item.Title_URL, includes: y => y.Specification).FirstOrDefault();
+                if (yacht != null)
+                {
+                    var subTypes = ConvertToCleanSubTypes(item.SubType).Select(x => workUnit.SubTypeRepository.Get(st => st.Name == x).FirstOrDefault() ?? new SubType { Name = x }).ToList();
+                    yacht.Specification.SubTypes = subTypes;
+                    yacht.Specification.HullType = item.HullType;
+                    yacht.Specification.Class = item.Class;
+                    workUnit.YachtRepository.Update(yacht);
+                    workUnit.Save();
+                }
+                else
+                {
+                    missingURLs.Add(item.Title_URL);
+                }
+            }
+            return Ok(missingURLs);
+        }
 
         /*
         //TODO: Delete me!
@@ -934,6 +776,248 @@ namespace AlexAPI.Controllers
                 return result;
 
             return 0;
+        }
+
+        private List<string> ConvertToCleanSubTypes(string value)
+        {
+            var result = value.Replace("SUBTYPES", "").Replace("SUBTYPE", "").Trim().Split(", ").Select(x => x.Trim()).ToList();
+            result.Remove("");
+            return result.Contains("N/A") ? new List<string>() : result;
+        }
+
+        private IEnumerable<Yacht> GetYachts(
+            string? name = null,
+            string? type = null,
+            string? destination = null,
+            int? numResults = null,
+            int? minPrice = null,
+            int? maxPrice = null,
+            int? length = null,
+            int? guests = null,
+            int? yearBuilt = null,
+            int? cabins = null,
+            int? maxSpeed = null,
+            int? grossTonnage = null,
+            int? cruisingSpeed = null,
+            string? subType = null,
+            string? hullType = null,
+            string? builder = null,
+            string[]? equipment = null)
+        {
+            var sqlQuery = new StringBuilder(@"
+                SELECT    
+	                y.*,
+                    s.[Type],
+                    s.[HullType],
+                    s.[YearBuilt],
+                    s.[Builder],
+                    s.[Length],
+                    s.[Guests],
+                    s.[Cabins],
+                    s.[Flag],
+                    s.[Port],
+                    s.[Superstructure],
+                    s.[InteriorDesigner],
+                    s.[ExteriorDesigner],
+                    s.[Crew],
+                    s.[Beam],
+                    s.[Draft],
+                    s.[GrossTonnage],
+                    s.[MaxSpeed],
+                    s.[CruisingSpeed],
+                    s.[EnginePowerOutput],
+                    s.[Model],
+                    s.[PropulsionType],
+                    s.[FuelCapacity],
+                    i.[Filename],
+                    i.[PhotographerName],
+                    i.[Type] AS [ImageType],
+                    i.[Url]
+                FROM 
+	                Yachts y 
+            ");
+
+            if (
+                name == null &&
+                type == null &&
+                destination == null &&
+                minPrice == null &&
+                maxPrice == null &&
+                length == null &&
+                guests == null &&
+                yearBuilt == null &&
+                cabins == null &&
+                maxSpeed == null &&
+                grossTonnage == null &&
+                grossTonnage == null &&
+                cruisingSpeed == null &&
+                subType == null &&
+                builder == null &&
+                equipment == null
+            )
+            {
+                sqlQuery.Append(@"
+                    INNER JOIN 
+	                    (SELECT TOP(@numResults) * FROM Yachts) featuredYachts ON featuredYachts.Id = y.Id 
+                ");
+            }
+
+            sqlQuery.Append(@"
+                LEFT JOIN 
+                    Specifications s ON y.SpecificationId = s.Id
+                LEFT JOIN 
+                    Media m ON y.MediaId = m.Id
+                LEFT JOIN 
+                    Images i ON i.MediaId = m.Id
+                LEFT JOIN 
+                    Prices p ON y.PriceId = p.Id
+                LEFT JOIN 
+                    LocationYacht ly ON y.Id = ly.YachtsId
+                LEFT JOIN 
+                    Locations l ON ly.LocationsId = l.Id
+                WHERE 1=1
+            ");
+
+            // List to hold SQL parameters
+            var parameters = new List<SqlParameter>([new SqlParameter("@numResults", numResults ?? int.MaxValue)]);
+
+            // Append conditions based on parameters
+            if (!string.IsNullOrEmpty(name))
+            {
+                sqlQuery.Append(" AND y.Name LIKE @name");
+                parameters.Add(new SqlParameter("@name", $"%{name}%"));
+            }
+
+            if (!string.IsNullOrEmpty(type))
+            {
+                sqlQuery.Append(" AND s.Type = @type");
+                parameters.Add(new SqlParameter("@type", type));
+            }
+
+            if (!string.IsNullOrEmpty(destination))
+            {
+                sqlQuery.Append(" AND l.Name = @destination");
+                parameters.Add(new SqlParameter("@destination", destination));
+            }
+
+            if (minPrice.HasValue)
+            {
+                sqlQuery.Append(" AND p.Standard >= @minPrice");
+                parameters.Add(new SqlParameter("@minPrice", minPrice));
+            }
+
+            if (maxPrice.HasValue)
+            {
+                sqlQuery.Append(" AND p.Standard <= @maxPrice");
+                parameters.Add(new SqlParameter("@maxPrice", maxPrice));
+            }
+
+            if (length.HasValue)
+            {
+                sqlQuery.Append(" AND s.Length >= @length");
+                parameters.Add(new SqlParameter("@length", length));
+            }
+
+
+            if (guests.HasValue)
+            {
+                sqlQuery.Append(" AND s.Guests >= @guests");
+                parameters.Add(new SqlParameter("@guests", guests));
+            }
+
+            if (yearBuilt.HasValue)
+            {
+                sqlQuery.Append(" AND s.YearBuilt >= @yearBuilt");
+                parameters.Add(new SqlParameter("@yearBuilt", yearBuilt));
+            }
+
+            if (cabins.HasValue)
+            {
+                sqlQuery.Append(" AND s.Cabins >= @cabins");
+                parameters.Add(new SqlParameter("@cabins", cabins));
+            }
+
+            if (maxSpeed.HasValue)
+            {
+                sqlQuery.Append(" AND s.MaxSpeed >= @maxSpeed");
+                parameters.Add(new SqlParameter("@maxSpeed", maxSpeed));
+            }
+
+            if (grossTonnage.HasValue)
+            {
+                sqlQuery.Append(" AND s.GrossTonnage >= @grossTonnage");
+                parameters.Add(new SqlParameter("@grossTonnage", grossTonnage));
+            }
+
+            if (cruisingSpeed.HasValue)
+            {
+                sqlQuery.Append(" AND s.CruisingSpeed >= @cruisingSpeed");
+                parameters.Add(new SqlParameter("@cruisingSpeed", cruisingSpeed));
+            }
+
+            if (!string.IsNullOrEmpty(subType))
+            {
+                sqlQuery.Append(" AND s.SubType = @subType");
+                parameters.Add(new SqlParameter("@subType", subType));
+            }
+
+            if (!string.IsNullOrEmpty(builder))
+            {
+                sqlQuery.Append(" AND s.Builder = @builder");
+                parameters.Add(new SqlParameter("@builder", builder));
+            }
+
+            if (equipment != null && equipment.Length > 0)
+            {
+                var equipmentConditions = string.Join(" OR ", equipment.Select((e, i) => $"y.Equipment LIKE @equipment{i}"));
+                sqlQuery.Append($" AND ({equipmentConditions})");
+                parameters.AddRange(equipment.Select((e, i) => new SqlParameter($"@equipment{i}", $"%{e}%")));
+            }
+
+            // Execute the query and get the results using raw SQL
+            var yachtDtos = workUnit.YachtRepository.ExecuteSqlQuery<YachtDto>(sqlQuery.ToString(), parameters.ToArray());
+            // Group and map the results
+            return yachtDtos.GroupBy(y => y.Id)
+                .Select(group => new Yacht
+                {
+                    Id = group.First().Id,
+                    Name = group.First().Name,
+                    Specification = new Specification
+                    {
+                        Type = group.First().Type,
+                        HullType = group.First().HullType,
+                        YearBuilt = group.First().YearBuilt,
+                        Builder = group.First().Builder,
+                        Length = group.First().Length,
+                        Guests = group.First().Guests,
+                        Cabins = group.First().Cabins,
+                        Flag = group.First().Flag,
+                        Port = group.First().Port,
+                        Superstructure = group.First().Superstructure,
+                        InteriorDesigner = group.First().InteriorDesigner,
+                        ExteriorDesigner = group.First().ExteriorDesigner,
+                        Crew = group.First().Crew,
+                        Beam = group.First().Beam,
+                        Draft = group.First().Draft,
+                        GrossTonnage = group.First().GrossTonnage,
+                        MaxSpeed = group.First().MaxSpeed,
+                        CruisingSpeed = group.First().CruisingSpeed,
+                        EnginePowerOutput = group.First().EnginePowerOutput,
+                        Model = group.First().Model,
+                        PropulsionType = group.First().PropulsionType,
+                        FuelCapacity = group.First().FuelCapacity
+                    },
+                    Media = new Media
+                    {
+                        Images = group.Select(y => new Image
+                        {
+                            Filename = y.Filename,
+                            PhotographerName = y.PhotographerName,
+                            Type = (ImageTypeEnum)y.ImageType,
+                            Url = y.Url
+                        }).ToList()
+                    }
+                });
         }
     }
 }

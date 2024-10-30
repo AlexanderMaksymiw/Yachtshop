@@ -1,18 +1,15 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy ASP.Net Core app to Azure Web App - YachtShopAPI
+name: Build and deploy ASP.Net Core app to FTPS - YachtShopAPI
 
 on:
   push:
     branches:
       - master
   workflow_dispatch:
-  
+
 permissions:
   id-token: write
   contents: read
-  
+
 jobs:
   build:
     runs-on: windows-latest
@@ -41,29 +38,22 @@ jobs:
   deploy:
     runs-on: windows-latest
     needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    permissions:
-      id-token: write #This is required for requesting the JWT
 
-    steps:        
+    steps:
       - name: Download Publish Directory
         uses: actions/download-artifact@v3
         with:
           name: publish
           path: './publish'
-          
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_74D31B01FAF649DA93623A0232AC806A }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_056C52E189BA41D0848992F87CA586C9 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F665B239CB1049FF87C2CF96B15EE11E }}
-        
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'YachtShopAPI'
-          package: './publish'
+
+      - name: Upload files to FTPS
+        env:
+          FTP_USERNAME: u118215671
+          FTP_PASSWORD: ${{ secrets.FTP }}
+        run: |
+          for file in ./publish/*; do
+            curl --ftp-ssl -T "$file" \
+              --url ftps://access1024699194.webspace-data.io:990/API/ \
+              --user "$FTP_USERNAME:$FTP_PASSWORD"
+          done
+        shell: bash

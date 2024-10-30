@@ -28,6 +28,8 @@ namespace AlexAPI.Models
         public string? Model { get; set; }
         public string? PropulsionType { get; set; }
         public string? FuelCapacity { get; set; }
+        public string? Class { get; set; }
+        public virtual ICollection<SubType>? SubTypes { get; set; }
         public virtual ICollection<PreviousName>? PreviousNames { get; set; }
     }
 }

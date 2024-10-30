@@ -7,6 +7,7 @@ namespace AlexAPI.Data.DAL.WorkUnits
     {
         private GenericRepository<Yacht> yachtRepository;
         private GenericRepository<Location> locationRepository;
+        private GenericRepository<SubType> subTypeRepository;
         public YachtWorkUnit(ApplicationDbContext context) : base(context)
         {
         }
@@ -32,6 +33,18 @@ namespace AlexAPI.Data.DAL.WorkUnits
                     locationRepository = new GenericRepository<Location>(_context);
                 }
                 return locationRepository;
+            }
+        }
+
+        public GenericRepository<SubType> SubTypeRepository
+        {
+            get
+            {
+                if (subTypeRepository == null)
+                {
+                    subTypeRepository = new GenericRepository<SubType>(_context);
+                }
+                return subTypeRepository;
             }
         }
     }

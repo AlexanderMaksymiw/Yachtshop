@@ -4,6 +4,7 @@ using AlexAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlexAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241016124313_AddingSYTUrlToYachts")]
+    partial class AddingSYTUrlToYachts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -252,9 +255,6 @@ namespace AlexAPI.Migrations
                     b.Property<int?>("Cabins")
                         .HasColumnType("int");
 
-                    b.Property<string>("Class")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int?>("Crew")
                         .HasColumnType("int");
 
@@ -282,9 +282,6 @@ namespace AlexAPI.Migrations
                     b.Property<int?>("Guests")
                         .HasColumnType("int");
 
-                    b.Property<string>("HullType")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("InteriorDesigner")
                         .HasColumnType("nvarchar(max)");
 
@@ -303,6 +300,9 @@ namespace AlexAPI.Migrations
                     b.Property<string>("PropulsionType")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SubType")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Superstructure")
                         .HasColumnType("nvarchar(max)");
 
@@ -315,21 +315,6 @@ namespace AlexAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Specifications", (string)null);
-                });
-
-            modelBuilder.Entity("AlexAPI.Models.SubType", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SubTypes", (string)null);
                 });
 
             modelBuilder.Entity("AlexAPI.Models.Toy", b =>
@@ -597,21 +582,6 @@ namespace AlexAPI.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("SpecificationSubType", b =>
-                {
-                    b.Property<Guid>("SpecificationsId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SubTypesId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("SpecificationsId", "SubTypesId");
-
-                    b.HasIndex("SubTypesId");
-
-                    b.ToTable("SpecificationSubType");
-                });
-
             modelBuilder.Entity("AlexAPI.Models.Image", b =>
                 {
                     b.HasOne("AlexAPI.Models.Media", null)
@@ -772,21 +742,6 @@ namespace AlexAPI.Migrations
                     b.HasOne("AlexAPI.Authentication.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("SpecificationSubType", b =>
-                {
-                    b.HasOne("AlexAPI.Models.Specification", null)
-                        .WithMany()
-                        .HasForeignKey("SpecificationsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("AlexAPI.Models.SubType", null)
-                        .WithMany()
-                        .HasForeignKey("SubTypesId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
