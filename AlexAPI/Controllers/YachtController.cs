@@ -11,6 +11,7 @@ using Microsoft.Data.SqlClient;
 using System.Text;
 using AlexAPI.ViewModels;
 using Microsoft.ApplicationInsights;
+using AlexAPI.Library.Locations;
 
 namespace AlexAPI.Controllers
 {
@@ -609,103 +610,54 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                List<string> mediterraneanLocations =
-                new List<string>
-                {
-                    "Kos",
-                    "Ajaccio",
-                    "Sicily",
-                    "Aegean Islands",
-                    "Tropez",
-                    "Greece",
-                    "Procida",
-                    "Cannes",
-                    "Tuscany",
-                    "Paros",
-                    "Finike",
-                    "Liguria",
-                    "Vibo",
-                    "Spain",
-                    "Bodrum",
-                    "Camogli",
-                    "Slovenia",
-                    "Bitez",
-                    "Corsica",
-                    "Adriatic Sea",
-                    "Santorini",
-                    "Sukosan",
-                    "Ionian Islands",
-                    "Patmos",
-                    "Gibraltar",
-                    "Zadar",
-                    "Istanbul",
-                    "Fethiye",
-                    "Monaco",
-                    "Bonifacio",
-                    "Capri",
-                    "Gocek",
-                    "Mykonos",
-                    "Pula",
-                    "Skiathos",
-                    "Italy",
-                    "Lefkada",
-                    "French Riviera",
-                    "Albania",
-                    "Italian Riviera",
-                    "Cote d'Azur",
-                    "East Mediterranean",
-                    "Calvi",
-                    "Corfu",
-                    "Antibes",
-                    "Athens",
-                    "Tyrrhenian Sea",
-                    "Venice",
-                    "Bormes-les-mimosas",
-                    "Karapathos",
-                    "Malta",
-                    "Larges",
-                    "Kalamata",
-                    "Valencia",
-                    "Solenzara",
-                    "Trogir",
-                    "Naples",
-                    "Rhodes",
-                    "France",
-                    "Ibiza",
-                    "Elba",
-                    "Sardinia",
-                    "Jean Cap Ferrat",
-                    "Turkey",
-                    "Portofino",
-                    "Dodecanese",
-                    "Split",
-                    "Crete",
-                    "Palermo",
-                    "Canaray Islands",
-                    "Peloponnese",
-                    "Croatia",
-                    "Dubrovnik",
-                    "Propriano",
-                    "Saint Raphael",
-                    "Kefalonia",
-                    "Naples",
-                    "Marbella",
-                    "Balearic Islands",
-                    "Montenegro",
-                    "Palma",
-                    "Iles d'Hyeres",
-                    "Cyclades Islands",
-                    "Porto-Vecchio",
-                    "Morocco",
-                    "Amalfi Coast",
-                    "Marmaris"
-
-                 
-
-                };
+                List<string> mediterraneanLocations = LocationHelper.MediterraneanLocations;
                 return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
                         location => mediterraneanLocations.Any(
                             medLocation => location.Name.Contains(medLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetCaribbeanYachts")]
+        public IActionResult GetCaribbeanYachts()
+        {
+            try
+            {
+                List<string> caribbeanLocations = LocationHelper.CaribbeanLocations;
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                        location => caribbeanLocations.Any(
+                            caribLocation => location.Name.Contains(caribLocation)
+                            )
+                        )
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetAsiaYachts")]
+        public IActionResult GetAsiaYachts()
+        {
+            try
+            {
+                List<string> AsiaLocations = LocationHelper.AsiaLocations;
+                return Ok(workUnit.YachtRepository.Get().Where(yacht => yacht.Locations.Any(
+                        location => AsiaLocations.Any(
+                            AsiaLocation => location.Name.Contains(AsiaLocations)
                             )
                         )
                     )
