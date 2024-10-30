@@ -53,12 +53,13 @@ namespace AlexAPI.Controllers
             int? grossTonnage = null,
             int? cruisingSpeed = null,
             string? subType = null,
+            string? hullType = null,
             string? builder = null,
             string[]? equipment = null)
         {
             try
             {
-                return Ok(GetYachts(name, type, destination, numResults, minPrice, maxPrice, length, guests, yearBuilt, cabins, maxSpeed, grossTonnage, cruisingSpeed, subType, builder, equipment));
+                return Ok(GetYachts(name, type, destination, numResults, minPrice, maxPrice, length, guests, yearBuilt, cabins, maxSpeed, grossTonnage, cruisingSpeed, subType, hullType, builder, equipment));
             }
             catch(Exception ex)
             {
@@ -747,6 +748,7 @@ namespace AlexAPI.Controllers
             int? grossTonnage = null,
             int? cruisingSpeed = null,
             string? subType = null,
+            string? hullType = null,
             string? builder = null,
             string[]? equipment = null)
         {
@@ -754,7 +756,7 @@ namespace AlexAPI.Controllers
                 SELECT    
 	                y.*,
                     s.[Type],
-                    s.[SubType],
+                    s.[HullType],
                     s.[YearBuilt],
                     s.[Builder],
                     s.[Length],
@@ -931,7 +933,7 @@ namespace AlexAPI.Controllers
                     Specification = new Specification
                     {
                         Type = group.First().Type,
-                        HullType = group.First().SubType,
+                        HullType = group.First().HullType,
                         YearBuilt = group.First().YearBuilt,
                         Builder = group.First().Builder,
                         Length = group.First().Length,
