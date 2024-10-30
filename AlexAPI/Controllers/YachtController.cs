@@ -16,7 +16,7 @@ using AlexAPI.Library.Locations;
 
 namespace AlexAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     [ApiController]
     public class YachtController : ControllerBase
     {
