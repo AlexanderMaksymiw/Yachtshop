@@ -7,7 +7,7 @@ using AlexAPI.ViewModels;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using System.Diagnostics.Eventing.Reader;
+using System.Linq.Expressions;
 using System.Text;
 
 namespace AlexAPI.Controllers
@@ -53,18 +53,52 @@ namespace AlexAPI.Controllers
             string? subType = null,
             string? hullType = null,
             string? builder = null,
-            string[]? equipment = null)
+            string[]? equipment = null
+        )
         {
             try
             {
-                return Ok(GetYachts(name, type, destination, numResults, minPrice, maxPrice, length, guests, yearBuilt, cabins, maxSpeed, grossTonnage, cruisingSpeed, subType, hullType, builder, equipment));
+                var includes = new Expression<Func<Yacht, object>>[]
+                {
+                    x => x.Specification,
+                    x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+                };
+
+                // Build filter dynamically
+                Expression<Func<Yacht, bool>> filter = x =>
+                    (name == null || x.Name.ToLower() == name.ToLower()) &&
+                    (type == null || x.Specification.Type == type) &&
+                    (destination == null || x.Locations.Any(l => l.Name == destination)) &&
+                    (minPrice == null || x.Price.Standard >= minPrice) &&
+                    (maxPrice == null || x.Price.Standard <= maxPrice) &&
+                    (length == null || x.Specification.Length == length) &&
+                    (guests == null || x.Specification.Guests == guests) &&
+                    (yearBuilt == null || x.Specification.YearBuilt == yearBuilt) &&
+                    (cabins == null || x.Specification.Cabins == cabins) &&
+                    (maxSpeed == null || x.Specification.MaxSpeed == maxSpeed) &&
+                    (grossTonnage == null || x.Specification.GrossTonnage == grossTonnage) &&
+                    (cruisingSpeed == null || x.Specification.CruisingSpeed == cruisingSpeed) &&
+                    (subType == null || x.Specification.SubTypes.Select(a => a.Name).Contains(subType)) &&
+                    (hullType == null || x.Specification.HullType == hullType) &&
+                    (builder == null || x.Specification.Builder == builder) &&
+                    (equipment == null || equipment.All(e => x.Amenities.Equipment.Select(a => a.Name).Contains(e)));
+
+                // Apply pagination and execute query
+                var result = workUnit.YachtRepository
+                    .Get(filter: filter, includes: includes)
+                    .Skip(page * numResults)
+                    .Take(numResults)
+                    .ToList();
+
+                return Ok(result);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 telemetryClient.TrackException(ex);
                 return BadRequest();
             }
         }
+
 
         [HttpGet]
         [Route("GetDropdownChoices")]
@@ -113,7 +147,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard <= 50000).Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard <= 50000).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -131,7 +165,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 50000).Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 50000).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -149,7 +183,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 0).Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 0).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -168,7 +202,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Motor").Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Motor").Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -186,7 +220,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Sailing").Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Sailing").Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -204,7 +238,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Catamaran").Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Catamaran").Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -222,7 +256,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")).Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -240,7 +274,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")).Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -258,7 +292,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")).Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -276,7 +310,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Mono Hull").Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Mono Hull").Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -294,7 +328,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Trimaran").Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Trimaran").Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -312,7 +346,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")).Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -331,7 +365,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")).Skip(page*25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -349,7 +383,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")).Skip(page * 25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")).Skip(page * numResults).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -439,9 +473,9 @@ namespace AlexAPI.Controllers
                 return Ok(workUnit.YachtRepository.GetByID(id));
             }
             catch (Exception ex)
-                {
-                    telemetryClient.TrackException(ex);
-                    return BadRequest(ex);
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
             }
         }
 
@@ -454,11 +488,11 @@ namespace AlexAPI.Controllers
             {
                 var yachts = workUnit.YachtRepository.Get(y => y.Name == item.Title && y.Specification.Length == ConvertToMeters(item.Length) && y.Specification.Type == item.Yacht_type && y.Specification.YearBuilt == ConvertToInt(item.Year_Built));
                 Yacht yacht;
-                if(yachts == null)
+                if (yachts == null)
                 {
                     return BadRequest(item);
                 }
-                else if(yachts.Count() > 1)
+                else if (yachts.Count() > 1)
                 {
                     for (int i = 1; i < yachts.Count(); i++)
                     {
@@ -681,7 +715,7 @@ namespace AlexAPI.Controllers
             List<string> missingURLs = new List<string>();
             foreach (var item in import)
             {
-                var yacht = workUnit.YachtRepository.Get(filter: y => y.SYTUrl == item.Title_URL, includes: y => y.Specification).FirstOrDefault();
+                var yacht = workUnit.YachtRepository.Get(filter: y => y.SYTUrl == item.Title_URL, includes: [y => y.Specification]).FirstOrDefault();
                 if (yacht != null)
                 {
                     var subTypes = ConvertToCleanSubTypes(item.SubType).Select(x => workUnit.SubTypeRepository.Get(st => st.Name == x).FirstOrDefault() ?? new SubType { Name = x }).ToList();
@@ -708,11 +742,11 @@ namespace AlexAPI.Controllers
             {
                 var yacht = workUnit.YachtRepository.Get(
                         filter: x => x.Name.ToLower() == csvYacht.Title.ToLower(),
-                        includes: y => y.Specification
+                        includes: [y => y.Specification]
                     )
-                    .Where(x => 
-                        Math.Round(x.Specification.Length.Value) + 1 == Math.Round(ConvertToMeters(csvYacht.Length)) 
-                        || Math.Round(x.Specification.Length.Value) - 1 == Math.Round(ConvertToMeters(csvYacht.Length)) 
+                    .Where(x =>
+                        Math.Round(x.Specification.Length.Value) + 1 == Math.Round(ConvertToMeters(csvYacht.Length))
+                        || Math.Round(x.Specification.Length.Value) - 1 == Math.Round(ConvertToMeters(csvYacht.Length))
                         || Math.Round(x.Specification.Length.Value) == Math.Round(ConvertToMeters(csvYacht.Length))
                     ).FirstOrDefault();
 
@@ -735,7 +769,7 @@ namespace AlexAPI.Controllers
 
                 if (yacht != null)
                 {
-                    if(yacht.Locations != workUnit.LocationRepository.Get(x => locations.Select(location => location.ToLower()).Contains(x.Name.ToLower())).ToList())
+                    if (yacht.Locations != workUnit.LocationRepository.Get(x => locations.Select(location => location.ToLower()).Contains(x.Name.ToLower())).ToList())
                     {
                         yacht.Locations = workUnit.LocationRepository.Get(x => locations.Select(location => location.ToLower()).Contains(x.Name.ToLower())).ToList();
                     }
@@ -745,7 +779,7 @@ namespace AlexAPI.Controllers
 
                 }
             }
-            
+
             workUnit.Save();
             return Ok(yachtsFromCSV);
         }
