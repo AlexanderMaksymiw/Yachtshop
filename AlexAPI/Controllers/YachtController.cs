@@ -39,7 +39,8 @@ namespace AlexAPI.Controllers
             string? name = null,
             string? type = null,
             string? destination = null,
-            int? numResults = null,
+            int page = 0,
+            int numResults = 25,
             int? minPrice = null,
             int? maxPrice = null,
             int? length = null,
@@ -105,11 +106,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetYachtsUnder50K")]
-        public IActionResult GetYachtsUnder50K()
+        public IActionResult GetYachtsUnder50K(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard <= 50000));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard <= 50000).Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -120,11 +124,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetYachtsOver50K")]
-        public IActionResult GetYachtsOver50K()
+        public IActionResult GetYachtsOver50K(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 50000));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 50000).Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -136,12 +143,13 @@ namespace AlexAPI.Controllers
         [HttpGet]
         [Route("GetCharterYachts")]
         public IActionResult GetCharterYachts(
+            int page = 0,
             int numResults = 25
         )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 0).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 0).Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -153,11 +161,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetMotorYachts")]
-        public IActionResult GetMotorYachts()
+        public IActionResult GetMotorYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Motor"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Motor").Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -168,11 +179,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetSailingYachts")]
-        public IActionResult GetSailingYachts()
+        public IActionResult GetSailingYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Sailing"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Sailing").Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -183,11 +197,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetCatamarans")]
-        public IActionResult GetCatamarans()
+        public IActionResult GetCatamarans(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Catamaran"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Catamaran").Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -198,11 +215,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetGulets")]
-        public IActionResult GetGulets()
+        public IActionResult GetGulets(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")).Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -213,11 +233,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetExplorers")]
-        public IActionResult GetExplorers()
+        public IActionResult GetExplorers(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")).Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -228,11 +251,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetSportFisherman")]
-        public IActionResult GetSportFisherman()
+        public IActionResult GetSportFisherman(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")).Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -243,11 +269,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetMonoHull")]
-        public IActionResult GetMonoHull()
+        public IActionResult GetMonoHull(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Mono Hull"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Mono Hull").Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -258,11 +287,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetTrimaran")]
-        public IActionResult GetTrimaran()
+        public IActionResult GetTrimaran(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Trimaran"));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Trimaran").Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -273,11 +305,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetFlybridge")]
-        public IActionResult GetFlybridge()
+        public IActionResult GetFlybridge(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")).Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -288,11 +323,15 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetSportBoat")]
-        public IActionResult GetSportBoat()
+        public IActionResult GetSportBoat(
+
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")).Skip(page*25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -303,11 +342,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetMaxi")]
-        public IActionResult GetMaxi()
+        public IActionResult GetMaxi(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -318,11 +360,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetJClass")]
-        public IActionResult GetJClass()
+        public IActionResult GetJClass(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "J Class")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "J Class")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -333,11 +378,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetMotorSailers")]
-        public IActionResult GetMotorSailers()
+        public IActionResult GetMotorSailers(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Motor Sailer")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Motor Sailer")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -348,11 +396,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetSupportYachts")]
-        public IActionResult GetSupportYachts()
+        public IActionResult GetSupportYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Support Yacht")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Support Yacht")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -363,11 +414,14 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetConversion")]
-        public IActionResult GetConversion()
+        public IActionResult GetConversion(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Conversion")));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Conversion")).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -421,7 +475,10 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetMediterraneanYachts")]
-        public IActionResult GetMediterraneanYachts()
+        public IActionResult GetMediterraneanYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
@@ -431,7 +488,7 @@ namespace AlexAPI.Controllers
                             medLocation => location.Name.Contains(medLocation)
                             )
                         )
-                    )
+                    ).Skip(page * 25).Take(numResults)
                 );
             }
             catch (Exception ex)
@@ -443,7 +500,10 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetCaribbeanYachts")]
-        public IActionResult GetCaribbeanYachts()
+        public IActionResult GetCaribbeanYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
@@ -453,7 +513,7 @@ namespace AlexAPI.Controllers
                             caribLocation => location.Name.Contains(caribLocation)
                             )
                         )
-                    )
+                    ).Skip(page * 25).Take(numResults)
                 );
             }
             catch (Exception ex)
@@ -465,7 +525,10 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetAsiaYachts")]
-        public IActionResult GetAsiaYachts()
+        public IActionResult GetAsiaYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
@@ -475,7 +538,7 @@ namespace AlexAPI.Controllers
                                 AsiaLocation => location.Name.Contains(AsiaLocation)
                             )
                         )
-                    )
+                    ).Skip(page * 25).Take(numResults)
                 );
             }
             catch (Exception ex)
@@ -487,7 +550,10 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetMiddleEastYachts")]
-        public IActionResult GetMiddleEastYachts()
+        public IActionResult GetMiddleEastYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
@@ -497,7 +563,7 @@ namespace AlexAPI.Controllers
                                 MiddleEastLocation => location.Name.Contains(MiddleEastLocation)
                             )
                         )
-                    )
+                    ).Skip(page * 25).Take(numResults)
                 );
             }
             catch (Exception ex)
@@ -509,7 +575,10 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetIndianOceanYachts")]
-        public IActionResult GetIndianOceanYachts()
+        public IActionResult GetIndianOceanYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
@@ -519,7 +588,7 @@ namespace AlexAPI.Controllers
                                 IndianOceanLocation => location.Name.Contains(IndianOceanLocation)
                             )
                         )
-                    )
+                    ).Skip(page * 25).Take(numResults)
                 );
             }
             catch (Exception ex)
@@ -531,7 +600,10 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetOceaniaYachts")]
-        public IActionResult GetOceaniaYachts()
+        public IActionResult GetOceaniaYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
@@ -541,7 +613,7 @@ namespace AlexAPI.Controllers
                                 OceaniaLocation => location.Name.Contains(OceaniaLocation)
                             )
                         )
-                    )
+                    ).Skip(page * 25).Take(numResults)
                 );
             }
             catch (Exception ex)
@@ -553,7 +625,10 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetNorthandSouthAmericaYachts")]
-        public IActionResult GetNorthandSouthAmericaYachts()
+        public IActionResult GetNorthandSouthAmericaYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
@@ -563,7 +638,7 @@ namespace AlexAPI.Controllers
                                 NorthandSouthAmericaLocation => location.Name.Contains(NorthandSouthAmericaLocation)
                             )
                         )
-                    )
+                    ).Skip(page * 25).Take(numResults)
                 );
             }
             catch (Exception ex)
@@ -575,7 +650,10 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetEuropeanYachts")]
-        public IActionResult GetEuropeanYachts()
+        public IActionResult GetEuropeanYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
@@ -585,7 +663,7 @@ namespace AlexAPI.Controllers
                                 EuropeanLocation => location.Name.Contains(EuropeanLocation)
                             )
                         )
-                    )
+                    ).Skip(page * 25).Take(numResults)
                 );
             }
             catch (Exception ex)
