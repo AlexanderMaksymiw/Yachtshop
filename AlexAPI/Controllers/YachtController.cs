@@ -135,11 +135,13 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetCharterYachts")]
-        public IActionResult GetCharterYachts()
+        public IActionResult GetCharterYachts(
+            int numResults = 25
+        )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 0));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 0).Take(numResults));
             }
             catch (Exception ex)
             {
