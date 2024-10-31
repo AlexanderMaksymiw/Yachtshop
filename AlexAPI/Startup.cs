@@ -2,7 +2,6 @@
 using AlexAPI.Data;
 using AlexAPI.Data.DAL;
 using AlexAPI.Library.Mail;
-using AlexAPI.Models;
 using AlexAPI.Services;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,8 +10,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
 using System.Text;
 using System.Text.Json.Serialization;
 
