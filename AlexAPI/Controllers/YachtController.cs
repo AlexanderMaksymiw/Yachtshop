@@ -66,7 +66,7 @@ namespace AlexAPI.Controllers
 
                 // Build filter dynamically
                 Expression<Func<Yacht, bool>> filter = x =>
-                    (name == null || x.Name.ToLower() == name.ToLower()) &&
+                    (name == null || x.Name.ToLower().Contains(name.ToLower())) &&
                     (type == null || x.Specification.Type == type) &&
                     (destination == null || x.Locations.Any(l => l.Name == destination)) &&
                     (minPrice == null || x.Price.Standard >= minPrice) &&
