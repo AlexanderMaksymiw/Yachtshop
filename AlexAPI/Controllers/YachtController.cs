@@ -71,13 +71,13 @@ namespace AlexAPI.Controllers
                     (destination == null || x.Locations.Any(l => l.Name == destination)) &&
                     (minPrice == null || x.Price.Standard >= minPrice) &&
                     (maxPrice == null || x.Price.Standard <= maxPrice) &&
-                    (length == null || x.Specification.Length == length) &&
-                    (guests == null || x.Specification.Guests == guests) &&
-                    (yearBuilt == null || x.Specification.YearBuilt == yearBuilt) &&
-                    (cabins == null || x.Specification.Cabins == cabins) &&
-                    (maxSpeed == null || x.Specification.MaxSpeed == maxSpeed) &&
-                    (grossTonnage == null || x.Specification.GrossTonnage == grossTonnage) &&
-                    (cruisingSpeed == null || x.Specification.CruisingSpeed == cruisingSpeed) &&
+                    (length == null || x.Specification.Length >= length) &&
+                    (guests == null || x.Specification.Guests >= guests) &&
+                    (yearBuilt == null || x.Specification.YearBuilt >= yearBuilt) &&
+                    (cabins == null || x.Specification.Cabins >= cabins) &&
+                    (maxSpeed == null || x.Specification.MaxSpeed >= maxSpeed) &&
+                    (grossTonnage == null || x.Specification.GrossTonnage >= grossTonnage) &&
+                    (cruisingSpeed == null || x.Specification.CruisingSpeed >= cruisingSpeed) &&
                     (subType == null || x.Specification.SubTypes.Select(a => a.Name).Contains(subType)) &&
                     (hullType == null || x.Specification.HullType == hullType) &&
                     (builder == null || x.Specification.Builder == builder) &&
