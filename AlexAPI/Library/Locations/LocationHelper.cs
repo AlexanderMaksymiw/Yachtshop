@@ -230,7 +230,7 @@
             }
         }
 
-        public static List<string> NorthandSouthAmericaLocations
+        public static List<string> NorthAmericaLocations
         {
             get
             {
@@ -246,36 +246,43 @@
                     "Vancouver",
                     "Miami",
                     "New England",
-                    "Costa Rica",
-                    "Belize",
-                    "Mexico",
-                    "Panama",
                     "USA",
                     "Florida",
                     "Northeast America",
                     "Northwest America",
-                    "Chile",
-                    "Easter Island",
                     "Chesapeake Bay",
                     "New York",
                     "Gulf Islands",
                     "Fort Lauderdale",
-                    "Hawaii",
                     "San Francisco",
                     "California",
                     "St. Petersburg & Tampa",
                     "Napa Valley",
-                    "Acapulco & the Mexican Riviera",
-                    "Angra Dos Reis",
                     "Baja California",
-                    "Bocaas del Toro Islands",
+                    "Bocaas del Toro Islands"
+                };
+            }
+        }
+
+        public static List<string> SouthAmericaLocations
+        {
+            get
+            {
+                return new List<string>
+                {
+                    "Chile",
+                    "Easter Island",
+                    "Angra Dos Reis",
                     "Brazil",
+                    "Acapulco & the Mexican Riviera",
                     "Cancun",
                     "Cuba",
                     "Galapagos",
-                    "Guardeloupe",
-                    "Honndurus",
-
+                    "Guadeloupe",
+                    "Honduras",
+                    "Costa Rica",
+                    "Belize",
+                    "Panama",
                 };
             }
         }

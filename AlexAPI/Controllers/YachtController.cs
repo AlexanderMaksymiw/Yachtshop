@@ -694,8 +694,33 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetNorthandSouthAmericaYachts")]
-        public IActionResult GetNorthandSouthAmericaYachts(
+        [Route("GetNorthAmericaYachts")]
+        public IActionResult GetNorthAmericaYachts(
+            int page = 0,
+            int numResults = 25
+        )
+        {
+            try
+            {
+                List<string> NorthAmericaLocations = LocationHelper.NorthAmericaLocations;
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
+                            location => NorthAmericaLocations.Any(
+                                NorthAmericaLocation => location.Name.Contains(NorthAmericaLocation)
+                            )
+                        )
+                    ).Skip(page * 25).Take(numResults)
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetSouthAmericaYachts")]
+        public IActionResult GetSouthAmericaYachts(
             int page = 0,
             int numResults = 25
         )
@@ -708,10 +733,10 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> NorthandSouthAmericaLocations = LocationHelper.NorthandSouthAmericaLocations;
+                List<string> SouthAmericaLocations = LocationHelper.SouthAmericaLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => NorthandSouthAmericaLocations.Any(
-                                NorthandSouthAmericaLocation => location.Name.Contains(NorthandSouthAmericaLocation)
+                            location => SouthAmericaLocations.Any(
+                                SouthAmericaLocation => location.Name.Contains(SouthAmericaLocation)
                             )
                         )
                     ).Skip(page * 25).Take(numResults)
