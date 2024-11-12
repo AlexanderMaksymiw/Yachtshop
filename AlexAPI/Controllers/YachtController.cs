@@ -514,6 +514,12 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
                 List<string> mediterraneanLocations = LocationHelper.MediterraneanLocations;
@@ -539,6 +545,12 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
                 List<string> caribbeanLocations = LocationHelper.CaribbeanLocations;
@@ -564,6 +576,12 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
                 List<string> AsiaLocations = LocationHelper.AsiaLocations;
@@ -589,6 +607,12 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
                 List<string> MiddleEastLocations = LocationHelper.MiddleEastLocations;
@@ -614,6 +638,12 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
                 List<string> IndianOceanLocations = LocationHelper.IndianOceanLocations;
@@ -639,6 +669,12 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
                 List<string> OceaniaLocations = LocationHelper.OceaniaLocations;
@@ -664,6 +700,12 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
                 List<string> NorthandSouthAmericaLocations = LocationHelper.NorthandSouthAmericaLocations;
@@ -689,6 +731,12 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
                 List<string> EuropeanLocations = LocationHelper.EuropeanLocations;

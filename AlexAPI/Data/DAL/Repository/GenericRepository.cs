@@ -17,9 +17,9 @@ namespace AlexAPI.Data.DAL.Repository
         }
 
         public virtual IEnumerable<TEntity> Get(
-            Expression<Func<TEntity, bool>> filter = null,
-            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
-            Expression<Func<TEntity, object>>[] includes = null)
+    Expression<Func<TEntity, bool>> filter = null,
+    Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
+    Expression<Func<TEntity, object>>[] includes = null)
         {
             IQueryable<TEntity> query = dbSet;
 
@@ -28,9 +28,12 @@ namespace AlexAPI.Data.DAL.Repository
                 query = query.Where(filter);
             }
 
-            foreach (var include in includes)
+            if (includes != null)
             {
-                query = query.Include(include);
+                foreach (var include in includes)
+                {
+                    query = query.Include(include);
+                }
             }
 
             return orderBy != null ? orderBy(query).ToList() : query.ToList();
