@@ -71,6 +71,7 @@ namespace AlexAPI.Controllers
                     (destination == null || x.Locations.Any(l => l.Name == destination)) &&
                     (minPrice == null || x.Price.Standard >= minPrice) &&
                     (maxPrice == null || x.Price.Standard <= maxPrice) &&
+                    (maxPrice == null || x.Price.Standard <= maxPrice) &&
                     (length == null || x.Specification.Length >= length) &&
                     (guests == null || x.Specification.Guests >= guests) &&
                     (yearBuilt == null || x.Specification.YearBuilt >= yearBuilt) &&
@@ -658,18 +659,43 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetNorthandSouthAmericaYachts")]
-        public IActionResult GetNorthandSouthAmericaYachts(
+        [Route("GetNorthAmericaYachts")]
+        public IActionResult GetNorthAmericaYachts(
             int page = 0,
             int numResults = 25
         )
         {
             try
             {
-                List<string> NorthandSouthAmericaLocations = LocationHelper.NorthandSouthAmericaLocations;
+                List<string> NorthAmericaLocations = LocationHelper.NorthAmericaLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => NorthandSouthAmericaLocations.Any(
-                                NorthandSouthAmericaLocation => location.Name.Contains(NorthandSouthAmericaLocation)
+                            location => NorthAmericaLocations.Any(
+                                NorthAmericaLocation => location.Name.Contains(NorthAmericaLocation)
+                            )
+                        )
+                    ).Skip(page * 25).Take(numResults)
+                );
+            }
+            catch (Exception ex)
+            {
+                telemetryClient.TrackException(ex);
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
+        [Route("GetSouthAmericaYachts")]
+        public IActionResult GetSouthAmericaYachts(
+            int page = 0,
+            int numResults = 25
+        )
+        {
+            try
+            {
+                List<string> SouthAmericaLocations = LocationHelper.SouthAmericaLocations;
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
+                            location => SouthAmericaLocations.Any(
+                                SouthAmericaLocation => location.Name.Contains(SouthAmericaLocation)
                             )
                         )
                     ).Skip(page * 25).Take(numResults)
