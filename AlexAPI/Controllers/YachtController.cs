@@ -2,13 +2,17 @@
 using AlexAPI.Enums;
 using AlexAPI.Library.Locations;
 using AlexAPI.Models;
+using AlexAPI.ResponseModels;
 using AlexAPI.Services.Interfaces;
+using AlexAPI.Services.Models;
 using AlexAPI.ViewModels;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Linq.Expressions;
+using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 
 namespace AlexAPI.Controllers
 {
@@ -19,16 +23,16 @@ namespace AlexAPI.Controllers
         private readonly IConfiguration configuration;
         private readonly ILogger<YachtController> logger;
         private readonly YachtWorkUnit workUnit;
-        private readonly ICSVImportService csvImportService;
+        private readonly ICSVService csvService;
         private readonly ILlamaService llamaAI;
         private readonly TelemetryClient telemetryClient;
 
-        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVImportService csvImportService, ILlamaService llamaAI, TelemetryClient telemetryClient)
+        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVService csvService, ILlamaService llamaAI, TelemetryClient telemetryClient)
         {
             this.logger = logger;
             this.configuration = configuration;
             this.workUnit = workUnit;
-            this.csvImportService = csvImportService;
+            this.csvService = csvService;
             this.llamaAI = llamaAI;
             this.telemetryClient = telemetryClient;
         }
@@ -483,7 +487,7 @@ namespace AlexAPI.Controllers
         [Route("ImportTitleUrl")]
         public IActionResult ImportTitleUrl(IFormFile file)
         {
-            var import = csvImportService.ReadSYTimesCSV(file);
+            var import = csvService.ReadSYTimesCSV(file);
             foreach (var item in import)
             {
                 var yachts = workUnit.YachtRepository.Get(y => y.Name == item.Title && y.Specification.Length == ConvertToMeters(item.Length) && y.Specification.Type == item.Yacht_type && y.Specification.YearBuilt == ConvertToInt(item.Year_Built));
@@ -784,7 +788,7 @@ namespace AlexAPI.Controllers
         [Route("ImportHullType")]
         public IActionResult ImportHullType(IFormFile file)
         {
-            var import = csvImportService.ReadShortSYTimesCSV(file);
+            var import = csvService.ReadShortSYTimesCSV(file);
             List<string> missingURLs = new List<string>();
             foreach (var item in import)
             {
@@ -810,7 +814,7 @@ namespace AlexAPI.Controllers
         [Route("YachtCharterFleetImport")]
         public IActionResult YachtCharterFleetIngest(IFormFile file)
         {
-            var yachtsFromCSV = csvImportService.ReadYachtCharterFleetCSV(file);
+            var yachtsFromCSV = csvService.ReadYachtCharterFleetCSV(file);
             foreach (var csvYacht in yachtsFromCSV)
             {
                 var yacht = workUnit.YachtRepository.Get(
@@ -857,7 +861,105 @@ namespace AlexAPI.Controllers
             return Ok(yachtsFromCSV);
         }
 
-        void AddLocations(string regions, List<string> locations)
+        [HttpPost]
+        [Route("GenerateCMSCSV")]
+        public async Task<IActionResult> GenerateCMSCSV(string path, IFormFile file)
+        {
+            string apiKey = "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";
+            string endpoint = "https://api.openai.com/v1/chat/completions";
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+
+            try
+            {
+                var response = await httpClient.PostAsync(endpoint, content);
+
+                var header = csvService.GetHeader(file);
+                var importCSV = csvService.ReadCMSCSV(file);
+                var rows = new List<List<string>>();
+                foreach (var importRow in importCSV)
+                {
+                    importRow.AccordionQ1 = $"How much does it cost to charter a yacht in {importRow.Title}?";
+                    importRow.AccordionQ2 = $"Timing & Weather: {importRow.Title} Yachting Season";
+                    importRow.AccordionQ3 = $"What Medical and Health Considerations should be made in {importRow.Title}?";
+                    importRow.AccordionQ4 = $"What are the Languages Spoken in {importRow.Title}?";
+                    importRow.AccordionQ5CL = $"What are the must see locations when chartering a yacht in {importRow.Title}?";
+
+                    int counter = 0;
+                    // Loop through each question and send a separate request
+                    foreach (var question in new[]
+                        {
+                        $"In a single 250 word paragraph: {importRow.AccordionQ1}",
+                        $"In a single 250 word paragraph: {importRow.AccordionQ2}",
+                        $"In a single 250 word paragraph: {importRow.AccordionQ3}",
+                        $"In a single 250 word paragraph: {importRow.AccordionQ4}",
+                        $"In a single 250 word paragraph: {importRow.AccordionQ5CL}",
+                    })
+                    {
+                        var requestBody = new
+                        {
+                            model = "gpt-3.5-turbo-0125",
+                            messages = new[]
+                            {
+                            new { role = "system", content = question }
+                        },
+                            max_tokens = 100,
+                            temperature = 0.7
+                        };
+
+                        var content = new StringContent(
+                            JsonSerializer.Serialize(requestBody),
+                            Encoding.UTF8,
+                            "application/json"
+                        );
+
+                        var response = await httpClient.PostAsync(endpoint, content);
+                        Console.WriteLine(response.StatusCode);
+                        Console.WriteLine("------------------------------------------------------");
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"API call failed for {importRow.Title} and question: {question}");
+                            continue;
+                        }
+
+                        var responseJson = await response.Content.ReadAsStringAsync();
+                        var apiResponse = JsonSerializer.Deserialize<OpenAIResponse>(responseJson);
+
+                        switch (counter)
+                        {
+                            case 0:
+                                importRow.Q1Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                break;
+                            case 1:
+                                importRow.Q2Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                break;
+                            case 2:
+                                importRow.Q3Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                break;
+                            case 3:
+                                importRow.Q4Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                break;
+                            case 4:
+                                importRow.Q5Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                break;
+                        }
+                        counter++;
+                    }
+                    rows.Add(ConvertRowToStringList(importRow));
+                }
+
+                csvService.CreateCSV(path, header, rows);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
+        private void AddLocations(string regions, List<string> locations)
         {
             regions.Split("\n").ToList().ForEach(x =>
             {
@@ -1174,6 +1276,88 @@ namespace AlexAPI.Controllers
                         }).ToList()
                     }
                 });
+        }
+
+        private List<string> ConvertRowToStringList(CMSCSV row)
+        {
+            return new List<string>{
+                    row.YachtCharterDestinations,
+                    row.Title,
+                    row.TagLine,
+                    row.Region,
+                    row.LocationTags,
+                    row.CollapseText,
+                    row.ReasonsToVisit,
+                    row.GoodFor,
+                    row.MustSeeLocationsTitle,
+                    row.LocationsPara1,
+                    row.LocationsPara2,
+                    row.HeroImage,
+                    row.YachtCharterDestinationsItem,
+                    row.YachtCharterDestinationsList,
+                    row.CharterDestinationsItem,
+                    row.TheMediterraneanItem,
+                    row.AccordionQ1,
+                    row.Q1Answer,
+                    row.Q1Image,
+                    row.AccordionQ2,
+                    row.Q2Answer,
+                    row.Q2Image,
+                    row.AccordionQ3,
+                    row.Q3Answer,
+                    row.Q3Image,
+                    row.AccordionQ4,
+                    row.Q4Answer,
+                    row.Q4Image,
+                    row.AccordionQ5CL,
+                    row.Q5Answer,
+                    row.Q5Image,
+                    row.Accordion2L1,
+                    row.Accordion2L1A,
+                    row.Accordion2L1I,
+                    row.Accordion2L2,
+                    row.Accordion2L2A,
+                    row.Accordion2L2I,
+                    row.Accordion2L3,
+                    row.Accordion2L3A,
+                    row.Accordion2L3I,
+                    row.Accordion2L4,
+                    row.Accordion2L4A,
+                    row.Accordion2L4I,
+                    row.Accordion2L5,
+                    row.Accordion2L5A,
+                    row.Accordion2L5I,
+                    row.Accordion2L6,
+                    row.Accordion2L6A,
+                    row.Accordion2L6I,
+                    row.Accordion2L7,
+                    row.Accordion2L7A,
+                    row.Accordion2L7I,
+                    row.Accordion2L8,
+                    row.Accordion2L8A,
+                    row.Accordion2L8I,
+                    row.Accordion2L9,
+                    row.Accordion2L9A,
+                    row.Accordion2L9I,
+                    row.LocationActivitiesTitle,
+                    row.CAP1,
+                    row.CAP2,
+                    row.LocationItineraries,
+                    row.ID,
+                    row.CreatedDate,
+                    row.UpdatedDate,
+                    row.Owner,
+                    row.LIP1,
+                    row.LIP2,
+                    row.NewsLocationTitle,
+                    row.LNP1,
+                    row.LocationEventsTitle,
+                    row.LEP1,
+                    row.LEP2,
+                    row.YachtsInLocationTitle,
+                    row.LYP1,
+                    row.LYP2,
+                };
         }
     }
 }
