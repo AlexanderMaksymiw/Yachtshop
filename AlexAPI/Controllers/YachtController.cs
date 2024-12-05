@@ -3,6 +3,7 @@ using AlexAPI.Enums;
 using AlexAPI.Library.Locations;
 using AlexAPI.Models;
 using AlexAPI.ResponseModels;
+using AlexAPI.Services;
 using AlexAPI.Services.Interfaces;
 using AlexAPI.Services.Models;
 using AlexAPI.ViewModels;
@@ -24,17 +25,15 @@ namespace AlexAPI.Controllers
         private readonly ILogger<YachtController> logger;
         private readonly YachtWorkUnit workUnit;
         private readonly ICSVService csvService;
-        private readonly ILlamaService llamaAI;
-        private readonly TelemetryClient telemetryClient;
+        private readonly IOpenAIService openAIService;
 
-        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVService csvService, ILlamaService llamaAI, TelemetryClient telemetryClient)
+        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVService csvService)
         {
             this.logger = logger;
             this.configuration = configuration;
             this.workUnit = workUnit;
             this.csvService = csvService;
-            this.llamaAI = llamaAI;
-            this.telemetryClient = telemetryClient;
+            this.openAIService = new OpenAIService();
         }
 
         [HttpPost]
@@ -98,7 +97,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest();
             }
         }
@@ -119,7 +118,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -137,7 +136,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -155,7 +154,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -173,7 +172,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -191,7 +190,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -210,7 +209,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -228,7 +227,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -246,7 +245,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -264,7 +263,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -282,7 +281,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -300,7 +299,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -318,7 +317,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -336,7 +335,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -354,7 +353,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -373,7 +372,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -391,7 +390,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -409,7 +408,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -427,7 +426,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -445,7 +444,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -463,7 +462,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -478,7 +477,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -537,7 +536,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -568,7 +567,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -599,7 +598,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -630,7 +629,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -661,7 +660,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -692,7 +691,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -717,7 +716,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -748,7 +747,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -779,7 +778,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                telemetryClient.TrackException(ex);
+                
                 return BadRequest(ex);
             }
         }
@@ -895,51 +894,24 @@ namespace AlexAPI.Controllers
                         $"In a single 250 word paragraph: {importRow.AccordionQ5CL}",
                     })
                     {
-                        var requestBody = new
-                        {
-                            model = "gpt-3.5-turbo-0125",
-                            messages = new[]
-                            {
-                            new { role = "system", content = question }
-                        },
-                            max_tokens = 100,
-                            temperature = 0.7
-                        };
-
-                        var content = new StringContent(
-                            JsonSerializer.Serialize(requestBody),
-                            Encoding.UTF8,
-                            "application/json"
-                        );
-
-                        var response = await httpClient.PostAsync(endpoint, content);
-                        Console.WriteLine(response.StatusCode);
-                        Console.WriteLine("------------------------------------------------------");
-                        if (!response.IsSuccessStatusCode)
-                        {
-                            Console.WriteLine($"API call failed for {importRow.Title} and question: {question}");
-                            continue;
-                        }
-
-                        var responseJson = await response.Content.ReadAsStringAsync();
-                        var apiResponse = JsonSerializer.Deserialize<OpenAIResponse>(responseJson);
+                        var response = await openAIService.GetResponseAsync(question);
 
                         switch (counter)
                         {
                             case 0:
-                                importRow.Q1Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                importRow.Q1Answer = response;
                                 break;
                             case 1:
-                                importRow.Q2Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                importRow.Q2Answer = response;
                                 break;
                             case 2:
-                                importRow.Q3Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                importRow.Q3Answer = response;
                                 break;
                             case 3:
-                                importRow.Q4Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                importRow.Q4Answer = response;
                                 break;
                             case 4:
-                                importRow.Q5Answer = apiResponse.Choices[0].Message.Content.Trim();
+                                importRow.Q5Answer = response;
                                 break;
                         }
                         counter++;

@@ -1,6 +1,6 @@
 ﻿namespace AlexAPI.Services.Interfaces
 {
-    public interface IGeminiAIService
+    public interface IOpenAIService
     {
         Task<string?> GetResponseAsync(string prompt);
     }
