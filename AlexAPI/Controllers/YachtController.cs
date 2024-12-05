@@ -873,8 +873,6 @@ namespace AlexAPI.Controllers
 
             try
             {
-                var response = await httpClient.PostAsync(endpoint, content);
-
                 var header = csvService.GetHeader(file);
                 var importCSV = csvService.ReadCMSCSV(file);
                 var rows = new List<List<string>>();
