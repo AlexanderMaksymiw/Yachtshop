@@ -864,12 +864,6 @@ namespace AlexAPI.Controllers
         [Route("GenerateCMSCSV")]
         public async Task<IActionResult> GenerateCMSCSV(string path, IFormFile file)
         {
-            string apiKey = "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";
-            string endpoint = "https://api.openai.com/v1/chat/completions";
-
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
-
             try
             {
                 var header = csvService.GetHeader(file);
@@ -877,48 +871,46 @@ namespace AlexAPI.Controllers
                 var rows = new List<List<string>>();
                 foreach (var importRow in importCSV)
                 {
-                    importRow.AccordionQ1 = $"How much does it cost to charter a yacht in {importRow.Title}?";
-                    importRow.AccordionQ2 = $"Timing & Weather: {importRow.Title} Yachting Season";
-                    importRow.AccordionQ3 = $"What Medical and Health Considerations should be made in {importRow.Title}?";
-                    importRow.AccordionQ4 = $"What are the Languages Spoken in {importRow.Title}?";
-                    importRow.AccordionQ5CL = $"What are the must see locations when chartering a yacht in {importRow.Title}?";
+                    var questions = new string[]{
+                        importRow.AccordionQ1 = $"How much does it cost to charter a yacht in {importRow.Title}?",
+                        importRow.AccordionQ2 = $"Timing & Weather: {importRow.Title} Yachting Season",
+                        importRow.AccordionQ3 = $"What Medical and Health Considerations should be made in {importRow.Title}?",
+                        importRow.AccordionQ4 = $"What are the Languages Spoken in {importRow.Title}?",
+                        importRow.AccordionQ5CL = $"What are the must see locations when chartering a yacht in {importRow.Title}?",
+                    };
 
                     int counter = 0;
-                    // Loop through each question and send a separate request
-                    foreach (var question in new[]
-                        {
-                        $"In a single 250 word paragraph: {importRow.AccordionQ1}",
-                        $"In a single 250 word paragraph: {importRow.AccordionQ2}",
-                        $"In a single 250 word paragraph: {importRow.AccordionQ3}",
-                        $"In a single 250 word paragraph: {importRow.AccordionQ4}",
-                        $"In a single 250 word paragraph: {importRow.AccordionQ5CL}",
-                    })
-                    {
-                        var response = await openAIService.GetResponseAsync(question);
 
+                    foreach (var question in questions)
+                    {
+                        var answer = await openAIService.GetResponseAsync(question);
                         switch (counter)
                         {
                             case 0:
-                                importRow.Q1Answer = response;
+                                importRow.AccordionQ1 = question;
+                                importRow.Q1Answer = answer;
                                 break;
                             case 1:
-                                importRow.Q2Answer = response;
+                                importRow.AccordionQ2 = question;
+                                importRow.Q2Answer = answer;
                                 break;
                             case 2:
-                                importRow.Q3Answer = response;
+                                importRow.AccordionQ3 = question;
+                                importRow.Q3Answer = answer;
                                 break;
                             case 3:
-                                importRow.Q4Answer = response;
+                                importRow.AccordionQ4 = question;
+                                importRow.Q4Answer = answer;
                                 break;
                             case 4:
-                                importRow.Q5Answer = response;
+                                importRow.AccordionQ5CL = question;
+                                importRow.Q5Answer = answer;
                                 break;
                         }
                         counter++;
                     }
                     rows.Add(ConvertRowToStringList(importRow));
                 }
-
                 csvService.CreateCSV(path, header, rows);
 
                 return Ok();

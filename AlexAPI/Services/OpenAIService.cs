@@ -28,7 +28,7 @@ namespace AlexAPI.Services
                 {
                             new { role = "system", content = message }
                         },
-                max_tokens = 100,
+                max_tokens = 2048,
                 temperature = 0.7
             };
 
