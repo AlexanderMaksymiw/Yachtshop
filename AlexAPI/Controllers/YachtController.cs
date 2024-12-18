@@ -869,7 +869,7 @@ namespace AlexAPI.Controllers
                 });
             }
 
-            return awards;
+            return awards.Count() == 0 ? null : awards;
         }
 
         private decimal ConvertToMeters(string value)
