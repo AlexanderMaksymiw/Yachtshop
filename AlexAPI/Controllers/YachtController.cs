@@ -2,18 +2,13 @@
 using AlexAPI.Enums;
 using AlexAPI.Library.Locations;
 using AlexAPI.Models;
-using AlexAPI.ResponseModels;
 using AlexAPI.Services;
 using AlexAPI.Services.Interfaces;
-using AlexAPI.Services.Models;
 using AlexAPI.ViewModels;
-using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Linq.Expressions;
-using System.Net.Http;
 using System.Text;
-using System.Text.Json;
 
 namespace AlexAPI.Controllers
 {
@@ -826,33 +821,10 @@ namespace AlexAPI.Controllers
                         || Math.Round(x.Specification.Length.Value) == Math.Round(ConvertToMeters(csvYacht.Length))
                     ).FirstOrDefault();
 
-                List<string> locations = new List<string>();
-                AddLocations(csvYacht.Cruising_Regions_Summer, locations);
-                AddLocations(csvYacht.Cruising_Regions_Winter, locations);
-
-                locations.ForEach(location =>
+                if (yacht != null && !csvYacht.Awards_Nominations.Contains("Amenities & Entertainment") && csvYacht.Awards_Nominations.Trim() != "")
                 {
-                    if (workUnit.LocationRepository.Get(x => x.Name.ToLower() == location.ToLower()).FirstOrDefault() == null)
-                    {
-                        workUnit.LocationRepository.Insert(new Location
-                        {
-                            Name = location
-                        });
-                    }
-                });
-                workUnit.Save();
-
-
-                if (yacht != null)
-                {
-                    if (yacht.Locations != workUnit.LocationRepository.Get(x => locations.Select(location => location.ToLower()).Contains(x.Name.ToLower())).ToList())
-                    {
-                        yacht.Locations = workUnit.LocationRepository.Get(x => locations.Select(location => location.ToLower()).Contains(x.Name.ToLower())).ToList();
-                    }
-                    yacht.Price.Standard = ConvertToDecimal(csvYacht.Price);
-                    yacht.Price.Summer = ConvertToDecimal(csvYacht.Summer_Charter_Rates);
-                    yacht.Price.Winter = ConvertToDecimal(csvYacht.Winter_Charter_Rates);
-
+                    var awards = ParseAwards(csvYacht.Awards_Nominations, csvYacht.Title);
+                    yacht.Awards = awards;
                 }
             }
 
@@ -860,77 +832,44 @@ namespace AlexAPI.Controllers
             return Ok(yachtsFromCSV);
         }
 
-        [HttpPost]
-        [Route("GenerateCMSCSV")]
-        public async Task<IActionResult> GenerateCMSCSV(string path, IFormFile file)
+        private List<Award> ParseAwards(string inputText, string yachtName)
         {
-            try
+            List<Award> awards = new List<Award>();
+
+            // Split the input text by new lines or multiple spaces, keeping only relevant parts.
+            var parts = inputText.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(x => x.Trim() != "" && !x.Contains(yachtName)).Select(x => x.Trim()).ToArray();
+
+            // Skip the first line as it is the header and doesn't contain award details
+            for (int i = 0; i < parts.Count(); i+=3)
             {
-                var header = csvService.GetHeader(file);
-                var importCSV = csvService.ReadCMSCSV(file);
-                var rows = new List<List<string>>();
-                foreach (var importRow in importCSV)
+                string eventName = "";
+                string title = "";
+                string status = "";
+                bool completeTitle = int.TryParse(parts[i][parts[i].Length - 1].ToString(), out int ignoreMe);
+                if (!completeTitle)
                 {
-                    var questions = new string[]{
-                        importRow.AccordionQ1 = $"How much does it cost to charter a yacht in {importRow.Title}?",
-                        importRow.AccordionQ2 = $"Timing & Weather: {importRow.Title} Yachting Season",
-                        importRow.AccordionQ3 = $"What Medical and Health Considerations should be made in {importRow.Title}?",
-                        importRow.AccordionQ4 = $"What are the Languages Spoken in {importRow.Title}?",
-                        importRow.AccordionQ5CL = $"What are the must see locations when chartering a yacht in {importRow.Title}?",
-                    };
-
-                    int counter = 0;
-
-                    foreach (var question in questions)
-                    {
-                        var answer = await openAIService.GetResponseAsync(question);
-                        switch (counter)
-                        {
-                            case 0:
-                                importRow.AccordionQ1 = question;
-                                importRow.Q1Answer = answer;
-                                break;
-                            case 1:
-                                importRow.AccordionQ2 = question;
-                                importRow.Q2Answer = answer;
-                                break;
-                            case 2:
-                                importRow.AccordionQ3 = question;
-                                importRow.Q3Answer = answer;
-                                break;
-                            case 3:
-                                importRow.AccordionQ4 = question;
-                                importRow.Q4Answer = answer;
-                                break;
-                            case 4:
-                                importRow.AccordionQ5CL = question;
-                                importRow.Q5Answer = answer;
-                                break;
-                        }
-                        counter++;
-                    }
-                    rows.Add(ConvertRowToStringList(importRow));
+                    eventName = $"{parts[i]} {parts[i+1]}";
+                    title = parts[i+2];
+                    status = parts[i+3];
+                    i++;
                 }
-                csvService.CreateCSV(path, header, rows);
-
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex);
-            }
-        }
-
-        private void AddLocations(string regions, List<string> locations)
-        {
-            regions.Split("\n").ToList().ForEach(x =>
-            {
-                x = x.Replace(",", "").Trim();
-                if (!string.IsNullOrWhiteSpace(x) && x != "Cruising Regions" && x != "HOT SPOTS:" && !locations.Contains(x))
+                else
                 {
-                    locations.Add(x);
+                    eventName = parts[i];
+                    title = parts[i + 1];
+                    status = parts[i + 2];
                 }
-            });
+
+                // Create a new award object and add it to the list
+                awards.Add(new Award
+                {
+                    Competition = eventName,
+                    Class = title,
+                    Result = status
+                });
+            }
+
+            return awards;
         }
 
         private decimal ConvertToMeters(string value)
@@ -978,348 +917,12 @@ namespace AlexAPI.Controllers
             return 0;
         }
 
-        private decimal ConvertToDecimal(string value)
-        {
-            if (string.IsNullOrEmpty(value)) return 0;
-
-            // Regular expression to find the first numeric sequence that represents a price
-            var match = System.Text.RegularExpressions.Regex.Match(value, @"\b\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?\b");
-
-            if (match.Success)
-            {
-                // Get the matched price string and remove any commas
-                var cleanedValue = match.Value.Replace(",", "");
-
-                // Try parsing the cleaned value to decimal
-                if (decimal.TryParse(cleanedValue, out var result))
-                    return result;
-            }
-
-            return 0;
-        }
 
         private List<string> ConvertToCleanSubTypes(string value)
         {
             var result = value.Replace("SUBTYPES", "").Replace("SUBTYPE", "").Trim().Split(", ").Select(x => x.Trim()).ToList();
             result.Remove("");
             return result.Contains("N/A") ? new List<string>() : result;
-        }
-
-        private IEnumerable<Yacht> GetYachts(
-            string? name = null,
-            string? type = null,
-            string? destination = null,
-            int? numResults = null,
-            int? minPrice = null,
-            int? maxPrice = null,
-            int? length = null,
-            int? guests = null,
-            int? yearBuilt = null,
-            int? cabins = null,
-            int? maxSpeed = null,
-            int? grossTonnage = null,
-            int? cruisingSpeed = null,
-            string? subType = null,
-            string? hullType = null,
-            string? builder = null,
-            string[]? equipment = null)
-        {
-            var sqlQuery = new StringBuilder(@"
-                SELECT    
-	                y.*,
-                    s.[Type],
-                    s.[HullType],
-                    s.[YearBuilt],
-                    s.[Builder],
-                    s.[Length],
-                    s.[Guests],
-                    s.[Cabins],
-                    s.[Flag],
-                    s.[Port],
-                    s.[Superstructure],
-                    s.[InteriorDesigner],
-                    s.[ExteriorDesigner],
-                    s.[Crew],
-                    s.[Beam],
-                    s.[Draft],
-                    s.[GrossTonnage],
-                    s.[MaxSpeed],
-                    s.[CruisingSpeed],
-                    s.[EnginePowerOutput],
-                    s.[Model],
-                    s.[PropulsionType],
-                    s.[FuelCapacity],
-                    i.[Filename],
-                    i.[PhotographerName],
-                    i.[Type] AS [ImageType],
-                    i.[Url]
-                FROM 
-	                Yachts y 
-            ");
-
-            if (
-                name == null &&
-                type == null &&
-                destination == null &&
-                minPrice == null &&
-                maxPrice == null &&
-                length == null &&
-                guests == null &&
-                yearBuilt == null &&
-                cabins == null &&
-                maxSpeed == null &&
-                grossTonnage == null &&
-                grossTonnage == null &&
-                cruisingSpeed == null &&
-                subType == null &&
-                builder == null &&
-                equipment == null
-            )
-            {
-                sqlQuery.Append(@"
-                    INNER JOIN 
-	                    (SELECT TOP(@numResults) * FROM Yachts) featuredYachts ON featuredYachts.Id = y.Id 
-                ");
-            }
-
-            sqlQuery.Append(@"
-                LEFT JOIN 
-                    Specifications s ON y.SpecificationId = s.Id
-                LEFT JOIN 
-                    Media m ON y.MediaId = m.Id
-                LEFT JOIN 
-                    Images i ON i.MediaId = m.Id
-                LEFT JOIN 
-                    Prices p ON y.PriceId = p.Id
-                LEFT JOIN 
-                    LocationYacht ly ON y.Id = ly.YachtsId
-                LEFT JOIN 
-                    Locations l ON ly.LocationsId = l.Id
-                WHERE 1=1
-            ");
-
-            // List to hold SQL parameters
-            var parameters = new List<SqlParameter>([new SqlParameter("@numResults", numResults ?? int.MaxValue)]);
-
-            // Append conditions based on parameters
-            if (!string.IsNullOrEmpty(name))
-            {
-                sqlQuery.Append(" AND y.Name LIKE @name");
-                parameters.Add(new SqlParameter("@name", $"%{name}%"));
-            }
-
-            if (!string.IsNullOrEmpty(type))
-            {
-                sqlQuery.Append(" AND s.Type = @type");
-                parameters.Add(new SqlParameter("@type", type));
-            }
-
-            if (!string.IsNullOrEmpty(destination))
-            {
-                sqlQuery.Append(" AND l.Name = @destination");
-                parameters.Add(new SqlParameter("@destination", destination));
-            }
-
-            if (minPrice.HasValue)
-            {
-                sqlQuery.Append(" AND p.Standard >= @minPrice");
-                parameters.Add(new SqlParameter("@minPrice", minPrice));
-            }
-
-            if (maxPrice.HasValue)
-            {
-                sqlQuery.Append(" AND p.Standard <= @maxPrice");
-                parameters.Add(new SqlParameter("@maxPrice", maxPrice));
-            }
-
-            if (length.HasValue)
-            {
-                sqlQuery.Append(" AND s.Length >= @length");
-                parameters.Add(new SqlParameter("@length", length));
-            }
-
-
-            if (guests.HasValue)
-            {
-                sqlQuery.Append(" AND s.Guests >= @guests");
-                parameters.Add(new SqlParameter("@guests", guests));
-            }
-
-            if (yearBuilt.HasValue)
-            {
-                sqlQuery.Append(" AND s.YearBuilt >= @yearBuilt");
-                parameters.Add(new SqlParameter("@yearBuilt", yearBuilt));
-            }
-
-            if (cabins.HasValue)
-            {
-                sqlQuery.Append(" AND s.Cabins >= @cabins");
-                parameters.Add(new SqlParameter("@cabins", cabins));
-            }
-
-            if (maxSpeed.HasValue)
-            {
-                sqlQuery.Append(" AND s.MaxSpeed >= @maxSpeed");
-                parameters.Add(new SqlParameter("@maxSpeed", maxSpeed));
-            }
-
-            if (grossTonnage.HasValue)
-            {
-                sqlQuery.Append(" AND s.GrossTonnage >= @grossTonnage");
-                parameters.Add(new SqlParameter("@grossTonnage", grossTonnage));
-            }
-
-            if (cruisingSpeed.HasValue)
-            {
-                sqlQuery.Append(" AND s.CruisingSpeed >= @cruisingSpeed");
-                parameters.Add(new SqlParameter("@cruisingSpeed", cruisingSpeed));
-            }
-
-            if (!string.IsNullOrEmpty(subType))
-            {
-                sqlQuery.Append(" AND s.SubType = @subType");
-                parameters.Add(new SqlParameter("@subType", subType));
-            }
-
-            if (!string.IsNullOrEmpty(builder))
-            {
-                sqlQuery.Append(" AND s.Builder = @builder");
-                parameters.Add(new SqlParameter("@builder", builder));
-            }
-
-            if (equipment != null && equipment.Length > 0)
-            {
-                var equipmentConditions = string.Join(" OR ", equipment.Select((e, i) => $"y.Equipment LIKE @equipment{i}"));
-                sqlQuery.Append($" AND ({equipmentConditions})");
-                parameters.AddRange(equipment.Select((e, i) => new SqlParameter($"@equipment{i}", $"%{e}%")));
-            }
-
-            // Execute the query and get the results using raw SQL
-            var yachtDtos = workUnit.YachtRepository.ExecuteSqlQuery<YachtDto>(sqlQuery.ToString(), parameters.ToArray());
-            // Group and map the results
-            return yachtDtos.GroupBy(y => y.Id)
-                .Select(group => new Yacht
-                {
-                    Id = group.First().Id,
-                    Name = group.First().Name,
-                    Specification = new Specification
-                    {
-                        Type = group.First().Type,
-                        HullType = group.First().HullType,
-                        YearBuilt = group.First().YearBuilt,
-                        Builder = group.First().Builder,
-                        Length = group.First().Length,
-                        Guests = group.First().Guests,
-                        Cabins = group.First().Cabins,
-                        Flag = group.First().Flag,
-                        Port = group.First().Port,
-                        Superstructure = group.First().Superstructure,
-                        InteriorDesigner = group.First().InteriorDesigner,
-                        ExteriorDesigner = group.First().ExteriorDesigner,
-                        Crew = group.First().Crew,
-                        Beam = group.First().Beam,
-                        Draft = group.First().Draft,
-                        GrossTonnage = group.First().GrossTonnage,
-                        MaxSpeed = group.First().MaxSpeed,
-                        CruisingSpeed = group.First().CruisingSpeed,
-                        EnginePowerOutput = group.First().EnginePowerOutput,
-                        Model = group.First().Model,
-                        PropulsionType = group.First().PropulsionType,
-                        FuelCapacity = group.First().FuelCapacity
-                    },
-                    Media = new Media
-                    {
-                        Images = group.Select(y => new Image
-                        {
-                            Filename = y.Filename,
-                            PhotographerName = y.PhotographerName,
-                            Type = (ImageTypeEnum)y.ImageType,
-                            Url = y.Url
-                        }).ToList()
-                    }
-                });
-        }
-
-        private List<string> ConvertRowToStringList(CMSCSV row)
-        {
-            return new List<string>{
-                    row.YachtCharterDestinations,
-                    row.Title,
-                    row.TagLine,
-                    row.Region,
-                    row.LocationTags,
-                    row.CollapseText,
-                    row.ReasonsToVisit,
-                    row.GoodFor,
-                    row.MustSeeLocationsTitle,
-                    row.LocationsPara1,
-                    row.LocationsPara2,
-                    row.HeroImage,
-                    row.YachtCharterDestinationsItem,
-                    row.YachtCharterDestinationsList,
-                    row.CharterDestinationsItem,
-                    row.TheMediterraneanItem,
-                    row.AccordionQ1,
-                    row.Q1Answer,
-                    row.Q1Image,
-                    row.AccordionQ2,
-                    row.Q2Answer,
-                    row.Q2Image,
-                    row.AccordionQ3,
-                    row.Q3Answer,
-                    row.Q3Image,
-                    row.AccordionQ4,
-                    row.Q4Answer,
-                    row.Q4Image,
-                    row.AccordionQ5CL,
-                    row.Q5Answer,
-                    row.Q5Image,
-                    row.Accordion2L1,
-                    row.Accordion2L1A,
-                    row.Accordion2L1I,
-                    row.Accordion2L2,
-                    row.Accordion2L2A,
-                    row.Accordion2L2I,
-                    row.Accordion2L3,
-                    row.Accordion2L3A,
-                    row.Accordion2L3I,
-                    row.Accordion2L4,
-                    row.Accordion2L4A,
-                    row.Accordion2L4I,
-                    row.Accordion2L5,
-                    row.Accordion2L5A,
-                    row.Accordion2L5I,
-                    row.Accordion2L6,
-                    row.Accordion2L6A,
-                    row.Accordion2L6I,
-                    row.Accordion2L7,
-                    row.Accordion2L7A,
-                    row.Accordion2L7I,
-                    row.Accordion2L8,
-                    row.Accordion2L8A,
-                    row.Accordion2L8I,
-                    row.Accordion2L9,
-                    row.Accordion2L9A,
-                    row.Accordion2L9I,
-                    row.LocationActivitiesTitle,
-                    row.CAP1,
-                    row.CAP2,
-                    row.LocationItineraries,
-                    row.ID,
-                    row.CreatedDate,
-                    row.UpdatedDate,
-                    row.Owner,
-                    row.LIP1,
-                    row.LIP2,
-                    row.NewsLocationTitle,
-                    row.LNP1,
-                    row.LocationEventsTitle,
-                    row.LEP1,
-                    row.LEP2,
-                    row.YachtsInLocationTitle,
-                    row.LYP1,
-                    row.LYP2,
-                };
         }
     }
 }

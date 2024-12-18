@@ -1,6 +1,6 @@
 ﻿namespace AlexAPI.Models
 {
-    public class Awards
+    public class Award
     {
         public Guid Id { get; set; }
         public string? Competition { get; set; }

@@ -20,8 +20,8 @@ namespace AlexAPI.Data
             // Link DB Table to Model
             modelBuilder.Entity<Yacht>().ToTable("Yachts");
             modelBuilder.Entity<Specification>().ToTable("Specifications");
-            modelBuilder.Entity<Amenities>().ToTable("Amenities");
-            modelBuilder.Entity<Awards>().ToTable("Awards");
+            modelBuilder.Entity<Amenity>().ToTable("Amenities");
+            modelBuilder.Entity<Award>().ToTable("Awards");
             modelBuilder.Entity<Equipment>().ToTable("Equipment");
             modelBuilder.Entity<Media>().ToTable("Media");
             modelBuilder.Entity<PreviousName>().ToTable("PreviousNames");
