@@ -821,55 +821,29 @@ namespace AlexAPI.Controllers
                         || Math.Round(x.Specification.Length.Value) == Math.Round(ConvertToMeters(csvYacht.Length))
                     ).FirstOrDefault();
 
-                if (yacht != null && !csvYacht.Awards_Nominations.Contains("Amenities & Entertainment") && csvYacht.Awards_Nominations.Trim() != "")
+                if (yacht != null)
                 {
-                    var awards = ParseAwards(csvYacht.Awards_Nominations, csvYacht.Title);
-                    yacht.Awards = awards;
+                    List<Toy> toys = new List<Toy>();
+                    var toyList = csvYacht.Toys.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Where(x => !x.Contains(csvYacht.Title)).ToList();
+                    for(int i = 0; i < toyList.Count(); i++)
+                    {
+                        if(toyList[i] != "" && i + 1 != toyList.Count() && toyList[i+1] != "")
+                        {
+                            toys.Add(new Toy { Name = $"{toyList[i]} {toyList[i + 1]}" });
+                            i++;
+                        }
+                        else if(toyList[i] != "")
+                        {
+                            toys.Add(new Toy { Name = toyList[i] });
+                        }
+                    }
+                    yacht.Amenities.Equipment = csvYacht.Amenities_Entertainment.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Where(x => x != "").Select(x => new Equipment { Name = x }).ToList();
+                    yacht.Amenities.Toys = toys;
                 }
             }
 
             workUnit.Save();
-            return Ok(yachtsFromCSV);
-        }
-
-        private List<Award> ParseAwards(string inputText, string yachtName)
-        {
-            List<Award> awards = new List<Award>();
-
-            // Split the input text by new lines or multiple spaces, keeping only relevant parts.
-            var parts = inputText.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Where(x => x.Trim() != "" && !x.Contains(yachtName)).Select(x => x.Trim()).ToArray();
-
-            // Skip the first line as it is the header and doesn't contain award details
-            for (int i = 0; i < parts.Count(); i+=3)
-            {
-                string eventName = "";
-                string title = "";
-                string status = "";
-                bool completeTitle = int.TryParse(parts[i][parts[i].Length - 1].ToString(), out int ignoreMe);
-                if (!completeTitle)
-                {
-                    eventName = $"{parts[i]} {parts[i+1]}";
-                    title = parts[i+2];
-                    status = parts[i+3];
-                    i++;
-                }
-                else
-                {
-                    eventName = parts[i];
-                    title = parts[i + 1];
-                    status = parts[i + 2];
-                }
-
-                // Create a new award object and add it to the list
-                awards.Add(new Award
-                {
-                    Competition = eventName,
-                    Class = title,
-                    Result = status
-                });
-            }
-
-            return awards.Count() == 0 ? null : awards;
+            return Ok();
         }
 
         private decimal ConvertToMeters(string value)

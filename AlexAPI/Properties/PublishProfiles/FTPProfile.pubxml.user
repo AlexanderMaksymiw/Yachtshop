@@ -6,37 +6,40 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
   <PropertyGroup>
     <TimeStampOfAssociatedLegacyPublishXmlFile />
     <EncryptedPassword>AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAA1TjBtHqzvUK7G0Lqwvr5MQAAAAACAAAAAAAQZgAAAAEAACAAAAA++B3NbG33qk4L3gWGWvYWsFI04r+BoZggpUqKtrGDSAAAAAAOgAAAAAIAACAAAABFqDQAx5nmOJprnhaTAn7tJ+svLqOGZYGYUy1dcZjvJyAAAACMg/QudjLl6hFz9MPOwVTi9TIpQXNCMNwELoRA0Jh0nUAAAABfYpfUNgvd+qXc+iWsI5QQvkzPBeqvl2ZQ/kFfoyR+WwNEtGFqiW663eHRFVYidNb+E7EamedhRwNI/IJaJ3PH</EncryptedPassword>
-    <History>True|2024-11-12T19:12:48.9715999Z||;False|2024-11-12T19:10:19.3062690+00:00||;True|2024-11-12T18:56:35.6615396+00:00||;False|2024-11-12T18:53:38.4462176+00:00||;</History>
+    <History>True|2024-12-18T16:50:00.6983893Z||;True|2024-11-12T19:12:48.9715999+00:00||;False|2024-11-12T19:10:19.3062690+00:00||;True|2024-11-12T18:56:35.6615396+00:00||;False|2024-11-12T18:53:38.4462176+00:00||;</History>
     <LastFailureDetails />
     <_PublishTargetUrl>ftp://access1024699194.webspace-data.io/API</_PublishTargetUrl>
   </PropertyGroup>
   <ItemGroup>
     <File Include="AlexAPI.deps.json">
-      <publishTime>11/12/2024 18:54:19</publishTime>
+      <publishTime>12/18/2024 16:47:53</publishTime>
     </File>
     <File Include="AlexAPI.dll">
-      <publishTime>11/12/2024 18:54:18</publishTime>
+      <publishTime>12/18/2024 16:45:39</publishTime>
     </File>
     <File Include="AlexAPI.exe">
-      <publishTime>11/12/2024 18:54:18</publishTime>
+      <publishTime>12/18/2024 16:45:39</publishTime>
     </File>
     <File Include="AlexAPI.pdb">
-      <publishTime>11/12/2024 18:54:18</publishTime>
+      <publishTime>12/18/2024 16:45:39</publishTime>
     </File>
     <File Include="AlexAPI.runtimeconfig.json">
-      <publishTime>10/16/2024 21:41:05</publishTime>
+      <publishTime>12/18/2024 16:45:40</publishTime>
+    </File>
+    <File Include="AlexAPI.staticwebassets.endpoints.json">
+      <publishTime>12/18/2024 16:47:53</publishTime>
     </File>
     <File Include="appsettings.Development.json">
-      <publishTime>10/31/2024 11:52:06</publishTime>
+      <publishTime>12/18/2024 13:22:39</publishTime>
     </File>
     <File Include="appsettings.json">
-      <publishTime>03/08/2024 10:26:59</publishTime>
+      <publishTime>12/18/2024 13:22:39</publishTime>
     </File>
     <File Include="appsettings.Production.json">
-      <publishTime>10/31/2024 11:51:52</publishTime>
+      <publishTime>12/18/2024 13:22:39</publishTime>
     </File>
     <File Include="Azure.AI.OpenAI.dll">
-      <publishTime>03/05/2024 23:48:46</publishTime>
+      <publishTime>05/03/2024 23:48:46</publishTime>
     </File>
     <File Include="Azure.Core.dll">
       <publishTime>04/19/2024 19:46:10</publishTime>
@@ -348,16 +351,16 @@ https://go.microsoft.com/fwlink/?LinkID=208121.
       <publishTime>12/29/2023 07:35:24</publishTime>
     </File>
     <File Include="web.config">
-      <publishTime>11/12/2024 18:54:19</publishTime>
+      <publishTime>12/18/2024 16:47:53</publishTime>
     </File>
     <File Include="wwwroot/Content/Logo.png">
-      <publishTime>08/03/2024 10:26:59</publishTime>
+      <publishTime>12/18/2024 13:22:39</publishTime>
     </File>
     <File Include="wwwroot/EmailTemplates/NewUserEmailTemplate.html">
-      <publishTime>08/03/2024 10:26:59</publishTime>
+      <publishTime>12/18/2024 13:22:39</publishTime>
     </File>
     <File Include="wwwroot/EmailTemplates/PasswordResetEmailTemplate.html">
-      <publishTime>08/03/2024 10:26:59</publishTime>
+      <publishTime>12/18/2024 13:22:39</publishTime>
     </File>
     <File Include="wwwroot/Identity/css/site.css">
       <publishTime>11/30/2023 18:47:10</publishTime>
