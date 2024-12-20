@@ -7,15 +7,13 @@ namespace AlexAPI.Services
 {
     public class OpenAIService : IOpenAIService
     {
-        string apiKey;
-        string endpoint;
         HttpClient httpClient = new HttpClient();
+        private string endpoint;
 
-        public OpenAIService()
+        public OpenAIService(string key, string endpoint)
         {
-            this.apiKey = "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";
-            this.endpoint = "https://api.openai.com/v1/chat/completions";
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+            this.endpoint = endpoint;
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {key}");
         }
 
         public async Task<string> GetResponseAsync(string prompt)

@@ -26,10 +26,6 @@ namespace AlexAPI
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddApplicationInsightsTelemetry(options =>
-            {
-                options.ConnectionString = Configuration.GetConnectionString("ApplicationInsightsConnectionString");
-            });
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseLazyLoadingProxies()
                     .UseSqlServer(

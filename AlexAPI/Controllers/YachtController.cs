@@ -28,7 +28,7 @@ namespace AlexAPI.Controllers
             this.configuration = configuration;
             this.workUnit = workUnit;
             this.csvService = csvService;
-            this.openAIService = new OpenAIService();
+            this.openAIService = new OpenAIService(configuration.GetConnectionString("OpenAI:Key"), configuration.GetConnectionString("OpenAI:BaseURL"));
         }
 
         [HttpPost]
@@ -778,70 +778,31 @@ namespace AlexAPI.Controllers
             }
         }
 
-        [HttpPost]
-        [Route("ImportHullType")]
-        public IActionResult ImportHullType(IFormFile file)
+        [HttpGet]
+        [Route("PopulateDescriptions")]
+        public async Task<IActionResult> PopulateDescriptions()
         {
-            var import = csvService.ReadShortSYTimesCSV(file);
-            List<string> missingURLs = new List<string>();
-            foreach (var item in import)
+
+            var includes = new Expression<Func<Yacht, object>>[]
             {
-                var yacht = workUnit.YachtRepository.Get(filter: y => y.SYTUrl == item.Title_URL, includes: [y => y.Specification]).FirstOrDefault();
-                if (yacht != null)
-                {
-                    var subTypes = ConvertToCleanSubTypes(item.SubType).Select(x => workUnit.SubTypeRepository.Get(st => st.Name == x).FirstOrDefault() ?? new SubType { Name = x }).ToList();
-                    yacht.Specification.SubTypes = subTypes;
-                    yacht.Specification.HullType = item.HullType;
-                    yacht.Specification.Class = item.Class;
-                    workUnit.YachtRepository.Update(yacht);
-                    workUnit.Save();
-                }
-                else
-                {
-                    missingURLs.Add(item.Title_URL);
-                }
-            }
-            return Ok(missingURLs);
-        }
-
-        [HttpPost]
-        [Route("YachtCharterFleetImport")]
-        public IActionResult YachtCharterFleetIngest(IFormFile file)
-        {
-            var yachtsFromCSV = csvService.ReadYachtCharterFleetCSV(file);
-            foreach (var csvYacht in yachtsFromCSV)
+                x => x.Specification,
+                x => x.Amenities.Equipment,
+                x => x.Amenities.Toys,
+            };
+            var yachts = workUnit.YachtRepository.Get(includes: includes);
+            foreach (Yacht yacht in yachts)
             {
-                var yacht = workUnit.YachtRepository.Get(
-                        filter: x => x.Name.ToLower() == csvYacht.Title.ToLower(),
-                        includes: [y => y.Specification]
-                    )
-                    .Where(x =>
-                        Math.Round(x.Specification.Length.Value) + 1 == Math.Round(ConvertToMeters(csvYacht.Length))
-                        || Math.Round(x.Specification.Length.Value) - 1 == Math.Round(ConvertToMeters(csvYacht.Length))
-                        || Math.Round(x.Specification.Length.Value) == Math.Round(ConvertToMeters(csvYacht.Length))
-                    ).FirstOrDefault();
-
-                if (yacht != null)
-                {
-                    List<Toy> toys = new List<Toy>();
-                    var toyList = csvYacht.Toys.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Where(x => !x.Contains(csvYacht.Title)).ToList();
-                    for(int i = 0; i < toyList.Count(); i++)
-                    {
-                        if(toyList[i] != "" && i + 1 != toyList.Count() && toyList[i+1] != "")
-                        {
-                            toys.Add(new Toy { Name = $"{toyList[i]} {toyList[i + 1]}" });
-                            i++;
-                        }
-                        else if(toyList[i] != "")
-                        {
-                            toys.Add(new Toy { Name = toyList[i] });
-                        }
-                    }
-                    yacht.Amenities.Equipment = csvYacht.Amenities_Entertainment.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Where(x => x != "").Select(x => new Equipment { Name = x }).ToList();
-                    yacht.Amenities.Toys = toys;
-                }
+                var prompt = $"Given the following information, write a 500 word summary about the following yacht, complete with headings and paragraphs:\n" +
+                    $"Name: {yacht.Name}\n" +
+                    $"Type: {yacht.Specification.Type}\n" +
+                    $"Sub Type: {yacht.Specification.SubTypes.Select(x => x.Name)}\n" +
+                    $"Cabins: {yacht.Specification.Cabins}\n" +
+                    $"Interior designer: {yacht.Specification.InteriorDesigner}\n" +
+                    $"Builder: {yacht.Specification.Builder}\n" +
+                    $"Toys: {string.Join(", ", yacht.Amenities.Toys.Select(x => x.Name))}\n" +
+                    $"Equipment: {string.Join(", ", yacht.Amenities.Equipment.Select(x => x.Name))}\n";
+                yacht.Description = await openAIService.GetResponseAsync(prompt);
             }
-
             workUnit.Save();
             return Ok();
         }
@@ -889,14 +850,6 @@ namespace AlexAPI.Controllers
                 return result;
 
             return 0;
-        }
-
-
-        private List<string> ConvertToCleanSubTypes(string value)
-        {
-            var result = value.Replace("SUBTYPES", "").Replace("SUBTYPE", "").Trim().Split(", ").Select(x => x.Trim()).ToList();
-            result.Remove("");
-            return result.Contains("N/A") ? new List<string>() : result;
         }
     }
 }
