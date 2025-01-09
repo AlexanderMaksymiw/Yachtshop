@@ -22,13 +22,13 @@ namespace AlexAPI.Controllers
         private readonly ICSVService csvService;
         private readonly IOpenAIService openAIService;
 
-        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVService csvService)
+        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVService csvService, IOpenAIService openAIService)
         {
             this.logger = logger;
             this.configuration = configuration;
             this.workUnit = workUnit;
             this.csvService = csvService;
-            this.openAIService = new OpenAIService(configuration.GetConnectionString("OpenAI:Key"), configuration.GetConnectionString("OpenAI:BaseURL"));
+            this.openAIService = openAIService;
         }
 
         [HttpPost]
@@ -786,6 +786,7 @@ namespace AlexAPI.Controllers
             var includes = new Expression<Func<Yacht, object>>[]
             {
                 x => x.Specification,
+                x => x.Specification.SubTypes,
                 x => x.Amenities.Equipment,
                 x => x.Amenities.Toys,
             };
@@ -795,12 +796,13 @@ namespace AlexAPI.Controllers
                 var prompt = $"Given the following information, write a 500 word summary about the following yacht, complete with headings and paragraphs:\n" +
                     $"Name: {yacht.Name}\n" +
                     $"Type: {yacht.Specification.Type}\n" +
-                    $"Sub Type: {yacht.Specification.SubTypes.Select(x => x.Name)}\n" +
+                    $"Sub Type: {string.Join(", ", yacht.Specification.SubTypes.Select(x => x.Name))}\n" +
                     $"Cabins: {yacht.Specification.Cabins}\n" +
                     $"Interior designer: {yacht.Specification.InteriorDesigner}\n" +
                     $"Builder: {yacht.Specification.Builder}\n" +
                     $"Toys: {string.Join(", ", yacht.Amenities.Toys.Select(x => x.Name))}\n" +
                     $"Equipment: {string.Join(", ", yacht.Amenities.Equipment.Select(x => x.Name))}\n";
+                prompt = "Are you receiving this message?";
                 yacht.Description = await openAIService.GetResponseAsync(prompt);
             }
             workUnit.Save();

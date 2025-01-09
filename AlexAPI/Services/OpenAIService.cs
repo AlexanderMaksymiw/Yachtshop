@@ -1,5 +1,10 @@
-﻿using AlexAPI.ResponseModels;
+﻿using AlexAPI.Library.Mail;
+using AlexAPI.Library.OpenAI;
+using AlexAPI.ResponseModels;
 using AlexAPI.Services.Interfaces;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Options;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 
@@ -8,23 +13,24 @@ namespace AlexAPI.Services
     public class OpenAIService : IOpenAIService
     {
         private readonly HttpClient _httpClient = new HttpClient();
+        private readonly string _endpoint;
 
-        public OpenAIService(string key, string endpoint)
+        public OpenAIService(IOptions<OpenAISettings> mailSettings)
         {
-            this.endpoint = endpoint;
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {key}");
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {mailSettings.Value.Key}");
+            _endpoint = mailSettings.Value.BaseURL;
         }
 
         public async Task<string> GetResponseAsync(string prompt)
         {
-            var message = $"In a single 250 word paragraph: {prompt}";
+            var message = prompt;
             var requestBody = new
             {
-                model = "gpt-3.5-turbo-0125",
+                model = "gpt-3.5-turbo",
                 messages = new[]
                 {
-                            new { role = "system", content = message }
-                        },
+                    new { role = "system", content = message }
+                },
                 max_tokens = 2048,
                 temperature = 0.7
             };
@@ -35,7 +41,7 @@ namespace AlexAPI.Services
                 "application/json"
             );
 
-            var response = await httpClient.PostAsync(endpoint, content);
+            var response = await _httpClient.PostAsync(_endpoint, content);
             var responseJson = await response.Content.ReadAsStringAsync();
             var apiResponse = JsonSerializer.Deserialize<OpenAIResponse>(responseJson);
 

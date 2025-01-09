@@ -2,6 +2,7 @@
 using AlexAPI.Data;
 using AlexAPI.Data.DAL;
 using AlexAPI.Library.Mail;
+using AlexAPI.Library.OpenAI;
 using AlexAPI.Services;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -131,6 +132,7 @@ namespace AlexAPI
             ));
 
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
+            services.Configure<OpenAISettings>(Configuration.GetSection("OpenAI"));
             services.AddInjections();
             services.AddHangfire(x => x.UseSqlServerStorage(Configuration.GetConnectionString("DatabaseConnection")));
             services.AddHangfireServer();
