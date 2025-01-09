@@ -7,8 +7,7 @@ namespace AlexAPI.Services
 {
     public class OpenAIService : IOpenAIService
     {
-        HttpClient httpClient = new HttpClient();
-        private string endpoint;
+        private readonly HttpClient _httpClient = new HttpClient();
 
         public OpenAIService(string key, string endpoint)
         {
