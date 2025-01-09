@@ -802,7 +802,6 @@ namespace AlexAPI.Controllers
                     $"Builder: {yacht.Specification.Builder}\n" +
                     $"Toys: {string.Join(", ", yacht.Amenities.Toys.Select(x => x.Name))}\n" +
                     $"Equipment: {string.Join(", ", yacht.Amenities.Equipment.Select(x => x.Name))}\n";
-                prompt = "Are you receiving this message?";
                 yacht.Description = await openAIService.GetResponseAsync(prompt);
             }
             workUnit.Save();
