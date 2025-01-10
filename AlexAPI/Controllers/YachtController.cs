@@ -782,30 +782,36 @@ namespace AlexAPI.Controllers
         [Route("PopulateDescriptions")]
         public async Task<IActionResult> PopulateDescriptions()
         {
-
-            var includes = new Expression<Func<Yacht, object>>[]
+            try
             {
+                var includes = new Expression<Func<Yacht, object>>[]
+                {
                 x => x.Specification,
                 x => x.Specification.SubTypes,
                 x => x.Amenities.Equipment,
                 x => x.Amenities.Toys,
-            };
-            var yachts = workUnit.YachtRepository.Get(includes: includes);
-            foreach (Yacht yacht in yachts)
-            {
-                var prompt = $"Given the following information, write a 500 word summary about the following yacht, complete with headings and paragraphs:\n" +
-                    $"Name: {yacht.Name}\n" +
-                    $"Type: {yacht.Specification.Type}\n" +
-                    $"Sub Type: {string.Join(", ", yacht.Specification.SubTypes.Select(x => x.Name))}\n" +
-                    $"Cabins: {yacht.Specification.Cabins}\n" +
-                    $"Interior designer: {yacht.Specification.InteriorDesigner}\n" +
-                    $"Builder: {yacht.Specification.Builder}\n" +
-                    $"Toys: {string.Join(", ", yacht.Amenities.Toys.Select(x => x.Name))}\n" +
-                    $"Equipment: {string.Join(", ", yacht.Amenities.Equipment.Select(x => x.Name))}\n";
-                yacht.Description = await openAIService.GetResponseAsync(prompt);
+                };
+                var yachts = workUnit.YachtRepository.Get(includes: includes);
+                foreach (Yacht yacht in yachts)
+                {
+                    var prompt = $"Given the following information, write a 500 word summary about the following yacht, complete with headings and paragraphs:\n" +
+                        $"Name: {yacht.Name}\n" +
+                        $"Type: {yacht.Specification.Type}\n" +
+                        $"Sub Type: {string.Join(", ", yacht.Specification.SubTypes.Select(x => x.Name))}\n" +
+                        $"Cabins: {yacht.Specification.Cabins}\n" +
+                        $"Interior designer: {yacht.Specification.InteriorDesigner}\n" +
+                        $"Builder: {yacht.Specification.Builder}\n" +
+                        $"Toys: {string.Join(", ", yacht.Amenities.Toys.Select(x => x.Name))}\n" +
+                        $"Equipment: {string.Join(", ", yacht.Amenities.Equipment.Select(x => x.Name))}\n";
+                    yacht.Description = await openAIService.GetResponseAsync(prompt);
+                }
+                workUnit.Save();
+                return Ok();
             }
-            workUnit.Save();
-            return Ok();
+            catch(Exception ex)
+            {
+                return BadRequest( ex );
+            }
         }
 
         private decimal ConvertToMeters(string value)
