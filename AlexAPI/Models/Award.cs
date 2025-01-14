@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Reflection.Metadata.Ecma335;
 
 namespace AlexAPI.Models
 {
