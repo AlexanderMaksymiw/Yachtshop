@@ -57,8 +57,6 @@ namespace AlexAPI.Controllers
                     x => x.Media,
                     x => x.Awards,
                     x => x.Amenities,
-                    x => x.Amenities.Toys,
-                    x => x.Amenities.Equipment,
                     x => x.Price,
                 };
 
