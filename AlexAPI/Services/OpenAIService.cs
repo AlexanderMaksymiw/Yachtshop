@@ -23,29 +23,49 @@ namespace AlexAPI.Services
 
         public async Task<string> GetResponseAsync(string prompt)
         {
-            var message = prompt;
-            var requestBody = new
+            try
             {
-                model = "gpt-3.5-turbo",
-                messages = new[]
+                var message = prompt;
+                var requestBody = new
                 {
+                    model = "gpt-3.5-turbo",
+                    messages = new[]
+                    {
                     new { role = "system", content = message }
                 },
-                max_tokens = 2048,
-                temperature = 0.7
-            };
+                    max_tokens = 2048,
+                    temperature = 0.7
+                };
 
-            var content = new StringContent(
-                JsonSerializer.Serialize(requestBody),
-                Encoding.UTF8,
-                "application/json"
-            );
+                var content = new StringContent(
+                    JsonSerializer.Serialize(requestBody),
+                    Encoding.UTF8,
+                    "application/json"
+                );
 
-            var response = await _httpClient.PostAsync(_endpoint, content);
-            var responseJson = await response.Content.ReadAsStringAsync();
-            var apiResponse = JsonSerializer.Deserialize<OpenAIResponse>(responseJson);
+                var response = await _httpClient.PostAsync(_endpoint, content);
+                var responseJson = await response.Content.ReadAsStringAsync();
+                var apiResponse = JsonSerializer.Deserialize<OpenAIResponse>(responseJson);
 
-            return apiResponse.Choices[0].Message.Content.Trim();
+                return apiResponse.Choices[0].Message.Content.Trim();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public async Task<string> TestConnection()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync("https://api.openai.com/v1/models");
+                return $"Response: {response.StatusCode}";
+            }
+            catch (Exception ex)
+            {
+                return ex.Message;
+            }
         }
     }
 }

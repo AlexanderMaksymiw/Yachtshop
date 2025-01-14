@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -151,6 +152,7 @@ namespace AlexAPI
             app.UseAuthorization();
             app.UseSwagger();
             app.UseSwaggerUI();
+            app.UseSerilogRequestLogging();
 
             if (env.IsDevelopment())
             {

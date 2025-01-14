@@ -1,14 +1,10 @@
 ﻿using AlexAPI.Data.DAL.WorkUnits;
-using AlexAPI.Enums;
 using AlexAPI.Library.Locations;
 using AlexAPI.Models;
-using AlexAPI.Services;
 using AlexAPI.Services.Interfaces;
 using AlexAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
 using System.Linq.Expressions;
-using System.Text;
 
 namespace AlexAPI.Controllers
 {
@@ -16,16 +12,14 @@ namespace AlexAPI.Controllers
     [ApiController]
     public class YachtController : ControllerBase
     {
-        private readonly IConfiguration configuration;
         private readonly ILogger<YachtController> logger;
         private readonly YachtWorkUnit workUnit;
         private readonly ICSVService csvService;
         private readonly IOpenAIService openAIService;
 
-        public YachtController(ILogger<YachtController> logger, IConfiguration configuration, YachtWorkUnit workUnit, ICSVService csvService, IOpenAIService openAIService)
+        public YachtController(ILogger<YachtController> logger, YachtWorkUnit workUnit, ICSVService csvService, IOpenAIService openAIService)
         {
             this.logger = logger;
-            this.configuration = configuration;
             this.workUnit = workUnit;
             this.csvService = csvService;
             this.openAIService = openAIService;
@@ -59,7 +53,13 @@ namespace AlexAPI.Controllers
                 var includes = new Expression<Func<Yacht, object>>[]
                 {
                     x => x.Specification,
-                    x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+                    x => x.Locations,
+                    x => x.Media,
+                    x => x.Awards,
+                    x => x.Amenities,
+                    x => x.Amenities.Toys,
+                    x => x.Amenities.Equipment,
+                    x => x.Price,
                 };
 
                 // Build filter dynamically
@@ -786,31 +786,43 @@ namespace AlexAPI.Controllers
             {
                 var includes = new Expression<Func<Yacht, object>>[]
                 {
-                x => x.Specification,
-                x => x.Specification.SubTypes,
-                x => x.Amenities.Equipment,
-                x => x.Amenities.Toys,
+                    x => x.Specification,
+                    x => x.Specification.SubTypes,
+                    x => x.Amenities.Equipment,
+                    x => x.Amenities.Toys,
                 };
-                var yachts = workUnit.YachtRepository.Get(includes: includes);
-                foreach (Yacht yacht in yachts)
+
+                Expression<Func<Yacht, bool>> filter = x => string.IsNullOrEmpty(x.Description);
+
+                var allYachts = workUnit.YachtRepository.Get(filter: filter, includes: includes);
+                for (int x = 0; x <= allYachts.Count() / 100; x++)
                 {
-                    var prompt = $"Given the following information, write a 500 word summary about the following yacht, complete with headings and paragraphs:\n" +
-                        $"Name: {yacht.Name}\n" +
-                        $"Type: {yacht.Specification.Type}\n" +
-                        $"Sub Type: {string.Join(", ", yacht.Specification.SubTypes.Select(x => x.Name))}\n" +
-                        $"Cabins: {yacht.Specification.Cabins}\n" +
-                        $"Interior designer: {yacht.Specification.InteriorDesigner}\n" +
-                        $"Builder: {yacht.Specification.Builder}\n" +
-                        $"Toys: {string.Join(", ", yacht.Amenities.Toys.Select(x => x.Name))}\n" +
-                        $"Equipment: {string.Join(", ", yacht.Amenities.Equipment.Select(x => x.Name))}\n";
-                    yacht.Description = await openAIService.GetResponseAsync(prompt);
+                    logger.Log(LogLevel.Information, "---------------------------------------------------------------------");
+                    logger.Log(LogLevel.Information, $"x: {x}");
+                    var yachts = allYachts.Skip(x*100).Take(100);
+                    for (int i = 0; i < yachts.Count(); i++)
+                    {
+                        var yacht = yachts.ElementAt(i);
+                        logger.Log(LogLevel.Information, yacht.Name);
+                        var prompt = $"Given the following information, write a 500 word summary about the following yacht, complete with headings and paragraphs:\n" +
+                            $"Name: {yacht.Name}\n" +
+                            $"Type: {yacht.Specification.Type}\n" +
+                            $"Sub Type: {string.Join(", ", yacht.Specification.SubTypes.Select(x => x.Name))}\n" +
+                            $"Cabins: {yacht.Specification.Cabins}\n" +
+                            $"Interior designer: {yacht.Specification.InteriorDesigner}\n" +
+                            $"Builder: {yacht.Specification.Builder}\n" +
+                            $"Toys: {string.Join(", ", yacht.Amenities.Toys.Select(x => x.Name))}\n" +
+                            $"Equipment: {string.Join(", ", yacht.Amenities.Equipment.Select(x => x.Name))}\n";
+                        yacht.Description = await openAIService.GetResponseAsync(prompt);
+                    }
+                    workUnit.Save();
                 }
-                workUnit.Save();
                 return Ok();
             }
             catch(Exception ex)
             {
-                return BadRequest( ex );
+                logger.Log(LogLevel.Error, ex.Message);
+                return BadRequest(ex.Message);
             }
         }
 
