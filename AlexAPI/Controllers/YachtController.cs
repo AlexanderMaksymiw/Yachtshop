@@ -5,6 +5,7 @@ using AlexAPI.Services.Interfaces;
 using AlexAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace AlexAPI.Controllers
 {
@@ -23,6 +24,37 @@ namespace AlexAPI.Controllers
             this.workUnit = workUnit;
             this.csvService = csvService;
             this.openAIService = openAIService;
+        }
+
+        [HttpGet]
+        [Route("GetById")]
+        public IActionResult GetById(Guid id)
+        {
+            try
+            {
+                string[] resultOrder = [
+                    "1st Place",
+                    "Winner",
+                    "Joint Winner",
+                    "2nd Place",
+                    "3rd Place",
+                    "Finalist",
+                    "Judges' Special Award",
+                    "Special Commendation",
+                    "Nomination",
+                    "NULL",
+                ];
+                var yacht = workUnit.YachtRepository.GetByID(id);
+                yacht.Awards = yacht.Awards
+                    .OrderBy(x => Array.IndexOf(resultOrder, x.Result))
+                    .ToList();
+                return Ok(yacht);
+            }
+            catch (Exception ex)
+            {
+
+                return BadRequest(ex);
+            }
         }
 
         [HttpPost]
@@ -55,8 +87,6 @@ namespace AlexAPI.Controllers
                     x => x.Specification,
                     x => x.Locations,
                     x => x.Media,
-                    x => x.Awards,
-                    x => x.Amenities,
                     x => x.Price,
                 };
 
@@ -83,8 +113,7 @@ namespace AlexAPI.Controllers
                 var result = workUnit.YachtRepository
                     .Get(filter: filter, includes: includes)
                     .Skip(page * numResults)
-                    .Take(numResults)
-                    .ToList();
+                    .Take(numResults);
 
                 return Ok(result);
             }
@@ -452,21 +481,6 @@ namespace AlexAPI.Controllers
             try
             {
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Conversion")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetById")]
-        public IActionResult GetById(Guid id)
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.GetByID(id));
             }
             catch (Exception ex)
             {
