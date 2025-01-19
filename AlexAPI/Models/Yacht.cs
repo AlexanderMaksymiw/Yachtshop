@@ -6,7 +6,6 @@
         public string Name { get; set; }
         public string Description { get; set; }
         public string SYTUrl { get; set; }
-        public decimal? PriceValue { get; set; }
         public decimal? Price { get; set; }
         public bool OnSale { get; set; }
         public virtual Specification Specification { get; set; } = new Specification();

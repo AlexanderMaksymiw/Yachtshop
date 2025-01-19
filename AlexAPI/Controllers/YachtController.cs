@@ -857,26 +857,6 @@ namespace AlexAPI.Controllers
             }
         }
 
-        [HttpGet]
-        [Route("UpdateDataStructure")]
-        public IActionResult UpdateDataStructure()
-        {
-            try
-            {
-                var allYachts = workUnit.YachtRepository.Get();
-                foreach (var yacht in allYachts)
-                {
-                    yacht.Price = yacht.PriceValue;
-                }
-                workUnit.Save();
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
         private decimal ConvertToMeters(string value)
         {
             if (string.IsNullOrEmpty(value)) return 0;
