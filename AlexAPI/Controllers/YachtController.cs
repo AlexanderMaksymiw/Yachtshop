@@ -517,34 +517,6 @@ namespace AlexAPI.Controllers
             }
         }
 
-        [HttpPost]
-        [Route("ImportTitleUrl")]
-        public IActionResult ImportTitleUrl(IFormFile file)
-        {
-            var import = csvService.ReadSYTimesCSV(file);
-            foreach (var item in import)
-            {
-                var yachts = workUnit.YachtRepository.Get(y => y.Name == item.Title && y.Specification.Length == ConvertToMeters(item.Length) && y.Specification.Type == item.Yacht_type && y.Specification.YearBuilt == ConvertToInt(item.Year_Built));
-                Yacht yacht;
-                if (yachts == null)
-                {
-                    return BadRequest(item);
-                }
-                else if (yachts.Count() > 1)
-                {
-                    for (int i = 1; i < yachts.Count(); i++)
-                    {
-                        workUnit.YachtRepository.Delete(yachts.ElementAt(i));
-                    }
-                }
-                yacht = yachts.First();
-                yacht.SYTUrl = item.Title_URL;
-                workUnit.YachtRepository.Update(yacht);
-            }
-            workUnit.Save();
-            return Ok();
-        }
-
         [HttpGet]
         [Route("GetMediterraneanYachts")]
         public IActionResult GetMediterraneanYachts(
@@ -815,45 +787,6 @@ namespace AlexAPI.Controllers
             {
                 
                 return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("PopulateKeyFeatures")]
-        public async Task<IActionResult> PopulateKeyFeatures()
-        {
-            try
-            {
-                var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.KeyFeatures
-            };
-
-                var allYachts = workUnit.YachtRepository.Get(includes: includes, filter: x => x.KeyFeatures.Count == 0);
-                for (int x = 0; x <= allYachts.Count() / 100; x++)
-                {
-                    logger.Log(LogLevel.Information, "---------------------------------------------------------------------");
-                    logger.Log(LogLevel.Information, $"x: {x}");
-                    var yachts = allYachts.Skip(x*100).Take(100);
-                    for (int i = 0; i < yachts.Count(); i++)
-                    {
-                        var yacht = yachts.ElementAt(i);
-                        logger.Log(LogLevel.Information, yacht.Name);
-                        var prompt = $"Can you write 8 ennumerated new line separated key features for the following yacht, given this description: {yacht.Description}";
-                        var response = await openAIService.GetResponseAsync(prompt);
-                        yacht.KeyFeatures = response.Split("\n").Where(x => !string.IsNullOrEmpty(x.Trim())).Select(x => new KeyFeature
-                        {
-                            Description = x.Trim().Replace("**", "").Remove(0, 3),
-                        }).ToList();
-                    }
-                    workUnit.Save();
-                }
-                return Ok();
-            }
-            catch(Exception ex)
-            {
-                logger.Log(LogLevel.Error, ex.Message);
-                return BadRequest(ex.Message);
             }
         }
 
