@@ -858,6 +858,7 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [HttpGet]
         public IActionResult UpdateDataStructure()
         {
             try
