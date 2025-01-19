@@ -206,17 +206,46 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 0).Skip(page * 25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => !yacht.OnSale).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
-                
+
                 return BadRequest(ex);
             }
         }
 
+        [HttpGet]
+        [Route("GetSalesYachts")]
+        public IActionResult GetSalesYachts(
+            int page = 0,
+            int numResults = 25
+        )
+        {
+            var includes = new Expression<Func<Yacht, object>>[]
+            {
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
+
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.OnSale).Skip(page * 25).Take(numResults));
+            }
+            catch (Exception ex)
+            {
+
+                return BadRequest(ex);
+            }
+        }
 
         [HttpGet]
         [Route("GetMotorYachts")]
@@ -825,6 +854,28 @@ namespace AlexAPI.Controllers
             catch(Exception ex)
             {
                 logger.Log(LogLevel.Error, ex.Message);
+                return BadRequest(ex.Message);
+            }
+        }
+
+        public IActionResult UpdateDataStructure()
+        {
+            try
+            {
+                var includes = new Expression<Func<Yacht, object>>[]
+                {
+                    x => x.Price,
+                    x => x.Locations
+                };
+                foreach (var yacht in workUnit.YachtRepository.Get(includes: includes))
+                {
+                    yacht.PriceValue = yacht.Price.Standard;
+                    yacht.OnSale = yacht.Locations.Count > 0;
+                }
+                return Ok();
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(ex.Message);
             }
         }
