@@ -859,6 +859,7 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
+        [Route("UpdateDataStructure")]
         public IActionResult UpdateDataStructure()
         {
             try
@@ -868,11 +869,13 @@ namespace AlexAPI.Controllers
                     x => x.Price,
                     x => x.Locations
                 };
-                foreach (var yacht in workUnit.YachtRepository.Get(includes: includes))
+                var allYachts = workUnit.YachtRepository.Get(includes: includes);
+                foreach (var yacht in allYachts)
                 {
                     yacht.PriceValue = yacht.Price.Standard;
                     yacht.OnSale = yacht.Locations.Count > 0;
                 }
+                workUnit.Save();
                 return Ok();
             }
             catch (Exception ex)
