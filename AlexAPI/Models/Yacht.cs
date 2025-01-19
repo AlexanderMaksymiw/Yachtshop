@@ -12,5 +12,6 @@
         public virtual ICollection<Award>? Awards { get; set; }
         public virtual Media Media { get; set; } = new Media();
         public virtual ICollection<Location>? Locations { get; set; }
+        public virtual ICollection<KeyFeature>? KeyFeatures { get; set; }
     }
 }

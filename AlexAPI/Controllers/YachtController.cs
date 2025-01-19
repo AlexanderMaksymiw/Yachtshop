@@ -791,22 +791,17 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
-        [Route("PopulateDescriptions")]
-        public async Task<IActionResult> PopulateDescriptions()
+        [Route("PopulateKeyFeatures")]
+        public async Task<IActionResult> PopulateKeyFeatures()
         {
             try
             {
                 var includes = new Expression<Func<Yacht, object>>[]
-                {
-                    x => x.Specification,
-                    x => x.Specification.SubTypes,
-                    x => x.Amenities.Equipment,
-                    x => x.Amenities.Toys,
-                };
+            {
+                x => x.KeyFeatures
+            };
 
-                Expression<Func<Yacht, bool>> filter = x => string.IsNullOrEmpty(x.Description);
-
-                var allYachts = workUnit.YachtRepository.Get(filter: filter, includes: includes);
+                var allYachts = workUnit.YachtRepository.Get(includes: includes, filter: x => x.KeyFeatures.Count == 0);
                 for (int x = 0; x <= allYachts.Count() / 100; x++)
                 {
                     logger.Log(LogLevel.Information, "---------------------------------------------------------------------");
@@ -816,16 +811,12 @@ namespace AlexAPI.Controllers
                     {
                         var yacht = yachts.ElementAt(i);
                         logger.Log(LogLevel.Information, yacht.Name);
-                        var prompt = $"Given the following information, write a 500 word summary about the following yacht, complete with headings and paragraphs:\n" +
-                            $"Name: {yacht.Name}\n" +
-                            $"Type: {yacht.Specification.Type}\n" +
-                            $"Sub Type: {string.Join(", ", yacht.Specification.SubTypes.Select(x => x.Name))}\n" +
-                            $"Cabins: {yacht.Specification.Cabins}\n" +
-                            $"Interior designer: {yacht.Specification.InteriorDesigner}\n" +
-                            $"Builder: {yacht.Specification.Builder}\n" +
-                            $"Toys: {string.Join(", ", yacht.Amenities.Toys.Select(x => x.Name))}\n" +
-                            $"Equipment: {string.Join(", ", yacht.Amenities.Equipment.Select(x => x.Name))}\n";
-                        yacht.Description = await openAIService.GetResponseAsync(prompt);
+                        var prompt = $"Can you write 8 ennumerated new line separated key features for the following yacht, given this description: {yacht.Description}";
+                        var response = await openAIService.GetResponseAsync(prompt);
+                        yacht.KeyFeatures = response.Split("\n").Where(x => !string.IsNullOrEmpty(x.Trim())).Select(x => new KeyFeature
+                        {
+                            Description = x.Trim().Replace("**", "").Remove(0, 3),
+                        }).ToList();
                     }
                     workUnit.Save();
                 }

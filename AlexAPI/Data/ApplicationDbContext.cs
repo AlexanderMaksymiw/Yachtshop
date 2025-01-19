@@ -22,6 +22,7 @@ namespace AlexAPI.Data
             modelBuilder.Entity<Specification>().ToTable("Specifications");
             modelBuilder.Entity<Amenity>().ToTable("Amenities");
             modelBuilder.Entity<Award>().ToTable("Awards");
+            modelBuilder.Entity<KeyFeature>().ToTable("KeyFeatures");
             modelBuilder.Entity<Equipment>().ToTable("Equipment");
             modelBuilder.Entity<Media>().ToTable("Media");
             modelBuilder.Entity<PreviousName>().ToTable("PreviousNames");
