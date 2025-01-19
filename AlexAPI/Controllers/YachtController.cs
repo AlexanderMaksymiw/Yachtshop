@@ -87,7 +87,6 @@ namespace AlexAPI.Controllers
                     x => x.Specification,
                     x => x.Locations,
                     x => x.Media,
-                    x => x.Price,
                 };
 
                 // Build filter dynamically
@@ -95,8 +94,8 @@ namespace AlexAPI.Controllers
                     (name == null || x.Name.ToLower().Contains(name.ToLower())) &&
                     (type == null || x.Specification.Type == type) &&
                     (destination == null || x.Locations.Any(l => l.Name == destination)) &&
-                    (minPrice == null || x.Price.Standard >= minPrice) &&
-                    (maxPrice == null || x.Price.Standard <= maxPrice) &&
+                    (minPrice == null || x.Price >= minPrice) &&
+                    (maxPrice == null || x.Price <= maxPrice) &&
                     (length == null || x.Specification.Length >= length) &&
                     (guests == null || x.Specification.Guests >= guests) &&
                     (yearBuilt == null || x.Specification.YearBuilt >= yearBuilt) &&
@@ -172,7 +171,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard <= 50000).Skip(page * 25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price <= 50000).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -190,7 +189,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price.Standard >= 50000).Skip(page * 25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price >= 50000).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -209,7 +208,7 @@ namespace AlexAPI.Controllers
             var includes = new Expression<Func<Yacht, object>>[]
             {
                 x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities,
             };
 
             try
@@ -864,16 +863,10 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                var includes = new Expression<Func<Yacht, object>>[]
-                {
-                    x => x.Price,
-                    x => x.Locations
-                };
-                var allYachts = workUnit.YachtRepository.Get(includes: includes);
+                var allYachts = workUnit.YachtRepository.Get();
                 foreach (var yacht in allYachts)
                 {
-                    yacht.PriceValue = yacht.Price.Standard;
-                    yacht.OnSale = yacht.Locations.Count > 0;
+                    yacht.Price = yacht.PriceValue;
                 }
                 workUnit.Save();
                 return Ok();
