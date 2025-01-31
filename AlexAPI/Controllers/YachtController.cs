@@ -818,23 +818,5 @@ namespace AlexAPI.Controllers
                 return BadRequest(ex);
             }
         }
-
-        [HttpGet]
-        [Route("ClearDuplicateAwards")]
-        public IActionResult ClearDuplicateAwards()
-        {
-            var allYachts = workUnit.YachtRepository.Get();
-            foreach (var yacht in allYachts)
-            {
-                yacht.Awards = yacht.Awards
-                    .GroupBy(a => new { a.Class, a.Result, a.Competition })
-                    .Select(g => g.First())
-                    .ToList();
-
-                workUnit.YachtRepository.Update(yacht);
-            }
-            workUnit.Save();
-            return Ok();
-        }
     }
 }
