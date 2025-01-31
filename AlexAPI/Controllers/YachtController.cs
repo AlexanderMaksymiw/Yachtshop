@@ -5,7 +5,6 @@ using AlexAPI.Services.Interfaces;
 using AlexAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
-using System.Reflection;
 
 namespace AlexAPI.Controllers
 {
@@ -215,7 +214,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => !yacht.OnSale).Skip(page * 25).Take(numResults));
+                return Ok(workUnit.YachtRepository.Get(yacht => !yacht.OnSale && yacht.Locations!.Count > 0 ).Skip(page * 25).Take(numResults));
             }
             catch (Exception ex)
             {
@@ -787,54 +786,55 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                
+
                 return BadRequest(ex);
             }
         }
 
-        private decimal ConvertToMeters(string value)
+        [HttpGet]
+        [Route("GetScubaYachts")]
+        public IActionResult GetScubaYachts(
+            int page = 0,
+            int numResults = 25
+        )
         {
-            if (string.IsNullOrEmpty(value)) return 0;
-
-            value = value.Trim();
-
-            if (value.EndsWith(" m"))
+            var includes = new Expression<Func<Yacht, object>>[]
             {
-                if (decimal.TryParse(value.Replace(" m", ""), out var meters))
-                    return meters;
-            }
-            else if (value.EndsWith(" in"))
-            {
-                if (decimal.TryParse(value.Replace(" in", ""), out var inches))
-                    return inches * 0.0254m;
-            }
-            else if (value.Contains("'"))
-            {
-                var feetIndex = value.IndexOf('\'');
-                var feet = value.Substring(0, feetIndex);
-                var inches = value.Substring(feetIndex + 1).Replace(" in", "");
+                x => x.Specification,
+                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
+            };
 
-                if (decimal.TryParse(feet, out var feetDecimal) && decimal.TryParse(inches, out var inchesDecimal))
-                    return (feetDecimal * 12 + inchesDecimal) * 0.0254m;
-            }
-            else if (decimal.TryParse(value, out var plainInches))
+            try
             {
-                return plainInches * 0.0254m;
+                List<string> EuropeanLocations = LocationHelper.EuropeanLocations;
+                return Ok(workUnit.YachtRepository.Get(yacht => 
+                    yacht.Amenities.Equipment!.Any(x => x.Name.ToLower().Contains("scuba")) ||
+                    yacht.Amenities.Toys!.Any(x => x.Name.ToLower().Contains("scuba"))
+                ).Skip(page * 25).Take(numResults));
             }
+            catch (Exception ex)
+            {
 
-            return 0;
+                return BadRequest(ex);
+            }
         }
 
-        private int ConvertToInt(string value)
+        [HttpGet]
+        [Route("ClearDuplicateAwards")]
+        public IActionResult ClearDuplicateAwards()
         {
-            if (string.IsNullOrEmpty(value)) return 0;
-            value = value.Trim();
-            if (value.Equals("N/A", StringComparison.OrdinalIgnoreCase)) return 0;
+            var allYachts = workUnit.YachtRepository.Get();
+            foreach (var yacht in allYachts)
+            {
+                yacht.Awards = yacht.Awards
+                    .GroupBy(a => new { a.Class, a.Result, a.Competition })
+                    .Select(g => g.First())
+                    .ToList();
 
-            if (int.TryParse(value, out var result))
-                return result;
-
-            return 0;
+                workUnit.YachtRepository.Update(yacht);
+            }
+            workUnit.Save();
+            return Ok();
         }
     }
 }
