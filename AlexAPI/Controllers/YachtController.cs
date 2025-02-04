@@ -3,6 +3,7 @@ using AlexAPI.Library.Locations;
 using AlexAPI.Models;
 using AlexAPI.Services.Interfaces;
 using AlexAPI.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
 
@@ -201,25 +202,68 @@ namespace AlexAPI.Controllers
 
         [HttpGet]
         [Route("GetCharterYachts")]
-        public IActionResult GetCharterYachts(
+        public IActionResult Get(
+            string? name = null,
+            string? type = null,
+            string? destination = null,
             int page = 0,
-            int numResults = 25
+            int numResults = 25,
+            int? minPrice = null,
+            int? maxPrice = null,
+            int? length = null,
+            int? guests = null,
+            int? yearBuilt = null,
+            int? cabins = null,
+            int? maxSpeed = null,
+            int? grossTonnage = null,
+            int? cruisingSpeed = null,
+            string? subType = null,
+            string? hullType = null,
+            string? builder = null,
+            string[]? equipment = null
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities,
-            };
-
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => !yacht.OnSale && yacht.Locations!.Count > 0 ).Skip(page * 25).Take(numResults));
+                var includes = new Expression<Func<Yacht, object>>[]
+                {
+                    x => x.Specification,
+                    x => x.Locations,
+                    x => x.Media,
+                };
+
+                // Build filter dynamically
+                Expression<Func<Yacht, bool>> filter = x =>
+                    (name == null || x.Name.ToLower().Contains(name.ToLower())) &&
+                    (type == null || x.Specification.Type == type) &&
+                    (destination == null || x.Locations.Any(l => l.Name == destination)) &&
+                    (minPrice == null || x.Price >= minPrice) &&
+                    (maxPrice == null || x.Price <= maxPrice) &&
+                    (length == null || x.Specification.Length >= length) &&
+                    (guests == null || x.Specification.Guests >= guests) &&
+                    (yearBuilt == null || x.Specification.YearBuilt >= yearBuilt) &&
+                    (cabins == null || x.Specification.Cabins >= cabins) &&
+                    (maxSpeed == null || x.Specification.MaxSpeed >= maxSpeed) &&
+                    (grossTonnage == null || x.Specification.GrossTonnage >= grossTonnage) &&
+                    (cruisingSpeed == null || x.Specification.CruisingSpeed >= cruisingSpeed) &&
+                    (subType == null || x.Specification.SubTypes.Select(a => a.Name).Contains(subType)) &&
+                    (hullType == null || x.Specification.HullType == hullType) &&
+                    (builder == null || x.Specification.Builder == builder) &&
+                    (equipment == null || equipment.All(e => x.Amenities.Equipment.Select(a => a.Name).Contains(e))) &&
+                    (x.OnSale == false);
+
+                // Apply pagination and execute query
+                var result = workUnit.YachtRepository
+                    .Get(filter: filter, includes: includes)
+                    .Skip(page * numResults)
+                    .Take(numResults);
+
+                return Ok(result);
             }
             catch (Exception ex)
             {
 
-                return BadRequest(ex);
+                return BadRequest();
             }
         }
 
@@ -815,6 +859,41 @@ namespace AlexAPI.Controllers
             catch (Exception ex)
             {
 
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpPost]
+        [Route("Update")]
+        public IActionResult UpdateYacht(Yacht yacht)
+        {
+            try
+            {
+                workUnit.YachtRepository.Update(yacht);
+                workUnit.Save();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpPost]
+        [Route("BulkUpdate")]
+        public IActionResult UpdateYachts(Yacht[] yachts)
+        {
+            try
+            {
+                Array.ForEach(yachts, yacht =>
+                {
+                    workUnit.YachtRepository.Update(yacht);
+                    workUnit.Save();
+                });
+                return Ok();
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(ex);
             }
         }

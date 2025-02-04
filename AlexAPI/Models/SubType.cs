@@ -7,6 +7,6 @@ namespace AlexAPI.Models
         public Guid Id { get; set; }
         public string Name { get; set; }
         [JsonIgnore]
-        public virtual ICollection<Specification> Specifications { get; set; }
+        public virtual ICollection<Specification> Specifications { get; set; } = new List<Specification>();
     }
 }
