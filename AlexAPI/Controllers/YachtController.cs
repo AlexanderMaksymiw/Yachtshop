@@ -1,11 +1,11 @@
-﻿using AlexAPI.Data.DAL.WorkUnits;
+﻿using AlexAPI.Authentication;
+using AlexAPI.Data.DAL.WorkUnits;
 using AlexAPI.Library.Locations;
 using AlexAPI.Models;
 using AlexAPI.Services.Interfaces;
 using AlexAPI.ViewModels;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 
 namespace AlexAPI.Controllers
@@ -295,18 +295,29 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
+        [Route("GetFeatured")]
+        public IActionResult GetFeatured(
+            int page = 0,
+            int numResults = 25
+        )
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.Get(yacht => yacht.IsFeatured).Skip(page * 25).Take(numResults));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpGet]
         [Route("GetSalesYachts")]
         public IActionResult GetSalesYachts(
             int page = 0,
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.OnSale).Skip(page * 25).Take(numResults));
@@ -421,7 +432,6 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -890,6 +900,7 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
         [HttpPost]
         [Route("Update")]
         public IActionResult UpdateYacht(Yacht yacht)
@@ -906,6 +917,41 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpPost]
+        [Route("Create")]
+        public IActionResult CreateYacht(Yacht yacht)
+        {
+            try
+            {
+                workUnit.YachtRepository.Insert(yacht);
+                workUnit.Save();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpPost]
+        [Route("Delete")]
+        public IActionResult DeleteYacht(Guid id)
+        {
+            try
+            {
+                workUnit.YachtRepository.Delete(id);
+                workUnit.Save();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
+
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
         [HttpPost]
         [Route("BulkUpdate")]
         public IActionResult UpdateYachts(Yacht[] yachts)
