@@ -146,11 +146,23 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                
-                return BadRequest();
+                return BadRequest(ex.Message);
             }
         }
 
+        [HttpGet]
+        [Route("GetHeroImage")]
+        public IActionResult GetHeroImage(Guid id)
+        {
+            try
+            {
+                return Ok(workUnit.YachtRepository.GetByID(id).Media.Images?.First(x => x.Type == 0));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
         [HttpGet]
         [Route("GetDropdownChoices")]
@@ -288,7 +300,6 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-
                 return BadRequest();
             }
         }
@@ -966,7 +977,60 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpPost]
+        [Route("UpdateHeroImage")]
+        public IActionResult UpdateHeroImage(Guid yachtId, string url)
+        {
+            try
+            {
+                var yacht = workUnit.YachtRepository.GetByID(yachtId);
+                if (yacht.Media.Images.Any(x => x.Type == 0))
+                {
+                    yacht.Media.Images.First(x => x.Type == 0).Url = url;
+                }
+                else
+                {
+                    yacht.Media.Images.Add(new Image
+                    {
+                        Filename = "Hero Image",
+                        Type = 0,
+                        Url = url
+                    });
+                }
+                return Ok();
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(ex);
+            }
+        }
+
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpPost]
+        [Route("AddImages")]
+        public IActionResult AddImages(Guid yachtId, Image[] images)
+        {
+            try
+            {
+                var yacht = workUnit.YachtRepository.GetByID(yachtId);
+                if (!yacht.Media.Images.Any())
+                {
+                    yacht.Media.Images = new List<Image>();
+                }
+                foreach (var item in images)
+                {
+                    yacht.Media.Images.Add(item);
+                }
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
     }
