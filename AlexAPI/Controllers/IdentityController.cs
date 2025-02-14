@@ -76,7 +76,6 @@ namespace AlexAPI.Controllers
             var userExists = await userManager.FindByNameAsync(model.Username);
             if (userExists != null)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
-            var authenticator = new Google.Authenticator.TwoFactorAuthenticator();
             ApplicationUser user = new ApplicationUser()
             {
                 Email = model.Email,
@@ -87,7 +86,7 @@ namespace AlexAPI.Controllers
             var result = await userManager.CreateAsync(user, model.Password);
             var newUser = await userManager.FindByNameAsync(model.Username);
 
-            var roleResult = await userManager.AddToRoleAsync(newUser, model.Role);
+            var roleResult = await userManager.AddToRoleAsync(newUser, UserRoles.User);
 
             if (!result.Succeeded || !roleResult.Succeeded)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
@@ -118,6 +117,34 @@ namespace AlexAPI.Controllers
             if (await roleManager.RoleExistsAsync(UserRoles.Broker))
             {
                 await userManager.AddToRoleAsync(user, UserRoles.Broker);
+            }
+
+            return Ok(new Response { Status = "Success", Message = "User created successfully!" });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = UserRoles.Admin)]
+        [Route("RegisterAdmin")]
+        public async Task<IActionResult> RegisterAdmin([FromBody] RegisterModel model)
+        {
+            var userExists = await userManager.FindByNameAsync(model.Username);
+            if (userExists != null)
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User already exists!" });
+
+            ApplicationUser user = new ApplicationUser()
+            {
+                Email = model.Email,
+                SecurityStamp = Guid.NewGuid().ToString(),
+                UserName = model.Username,
+                secretKey2FA = Guid.NewGuid()
+            };
+            var result = await userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded)
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
+
+            if (await roleManager.RoleExistsAsync(UserRoles.Admin))
+            {
+                await userManager.AddToRoleAsync(user, UserRoles.Admin);
             }
 
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
