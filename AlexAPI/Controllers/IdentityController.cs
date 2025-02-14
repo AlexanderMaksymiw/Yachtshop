@@ -12,6 +12,8 @@ using System.Web;
 
 namespace AlexAPI.Controllers
 {
+    [Route("[controller]")]
+    [ApiController]
     public class IdentityController : Controller
     {
         private ILogger<IdentityController> logger;
