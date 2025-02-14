@@ -4,7 +4,6 @@ using AlexAPI.Library.Locations;
 using AlexAPI.Models;
 using AlexAPI.Services.Interfaces;
 using AlexAPI.ViewModels;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
 

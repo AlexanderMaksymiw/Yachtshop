@@ -65,7 +65,8 @@ namespace AlexAPI.Controllers
                 return Ok(new
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(token),
-                    expiration = token.ValidTo
+                    expiration = token.ValidTo,
+                    roles = userRoles
                 });
             }
             return Unauthorized();
