@@ -5,6 +5,7 @@ using AlexAPI.Services.Interfaces;
 using AlexAPI.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualBasic;
 using System.Linq.Expressions;
 
 namespace AlexAPI.Controllers
@@ -48,6 +49,32 @@ namespace AlexAPI.Controllers
                 yacht.Awards = yacht.Awards
                     .OrderBy(x => Array.IndexOf(resultOrder, x.Result))
                     .ToList();
+                return Ok(yacht);
+            }
+            catch (Exception ex)
+            {
+
+                return BadRequest(ex);
+            }
+        }
+
+        [HttpPost]
+        [Route("GetByIds")]
+        public IActionResult GetByIds(Guid[] ids)
+        {
+            try
+            {
+                var includes = new Expression<Func<Yacht, object>>[]
+                {
+                    x => x.Specification,
+                    x => x.Locations,
+                    x => x.Media,
+                };
+
+                // Build filter dynamically
+                Expression<Func<Yacht, bool>> filter = x => ids.Contains(x.Id);
+
+                var yacht = workUnit.YachtRepository.Get(filter: filter, includes: includes);
                 return Ok(yacht);
             }
             catch (Exception ex)
