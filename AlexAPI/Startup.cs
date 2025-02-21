@@ -5,7 +5,6 @@ using AlexAPI.Library.FTP;
 using AlexAPI.Library.Mail;
 using AlexAPI.Library.OpenAI;
 using AlexAPI.Services;
-using FluentFTP;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
@@ -14,7 +13,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
-using System.Net;
 using System.Text;
 using System.Text.Json.Serialization;
 

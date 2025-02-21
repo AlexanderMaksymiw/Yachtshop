@@ -29,9 +29,9 @@ namespace AlexAPI.Services
             }
 
             ftpClient.Connect();
-            if (!ftpClient.DirectoryExists(directory))
+            if (!ftpClient.DirectoryExists($"/u118215671/Images/{directory}"))
             {
-                ftpClient.CreateDirectory(directory);
+                ftpClient.CreateDirectory($"/u118215671/Images/{directory}");
             }
             ftpClient.UploadFile(Path.Combine(Path.GetTempPath(), file.FileName), $"/u118215671/Images/{directory}/{filename}{extension}");
             ftpClient.Disconnect();
