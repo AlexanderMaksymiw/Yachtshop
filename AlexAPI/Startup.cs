@@ -1,6 +1,7 @@
 ﻿using AlexAPI.Authentication;
 using AlexAPI.Data;
 using AlexAPI.Data.DAL;
+using AlexAPI.Library.FTP;
 using AlexAPI.Library.Mail;
 using AlexAPI.Library.OpenAI;
 using AlexAPI.Services;
@@ -94,21 +95,6 @@ namespace AlexAPI
                 };
             });
 
-            services.AddSingleton<FtpClient>(provider =>
-            {
-                var ftpSettings = Configuration.GetSection("FtpSettings");
-                string host = ftpSettings["Host"];
-                string username = ftpSettings["Username"];
-                string password = ftpSettings["Password"];
-
-                var client = new FtpClient(host)
-                {
-                    Credentials = new NetworkCredential(username, password)
-                };
-
-                return client;
-            });
-
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             services.AddSwaggerGen(c =>
             {
@@ -149,6 +135,7 @@ namespace AlexAPI
                 }
             ));
 
+            services.Configure<FTPSettings>(Configuration.GetSection("FtpSettings"));
             services.Configure<MailSettings>(Configuration.GetSection("MailSettings"));
             services.Configure<OpenAISettings>(Configuration.GetSection("OpenAI"));
             services.AddInjections();

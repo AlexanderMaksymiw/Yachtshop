@@ -1,15 +1,21 @@
-﻿using AlexAPI.Models;
+﻿using AlexAPI.Library.FTP;
 using AlexAPI.Services.Interfaces;
 using FluentFTP;
+using Microsoft.Extensions.Options;
+using System.Net;
 
 namespace AlexAPI.Services
 {
     public class FTPService : IFTPService
     {
         private readonly FtpClient ftpClient;
-        public FTPService(FtpClient ftpClient)
+        public FTPService(IOptions<FTPSettings> ftpSettings)
         {
-            this.ftpClient = ftpClient;
+            ftpClient = new FtpClient
+            {
+                Host = ftpSettings.Value.Host,
+                Credentials = new NetworkCredential(ftpSettings.Value.Username, ftpSettings.Value.Password)
+            };
         }
 
         public async Task<string> UploadFile(IFormFile file, string directory, string filename)

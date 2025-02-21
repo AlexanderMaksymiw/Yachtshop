@@ -10,11 +10,9 @@ namespace AlexAPI.Services
     public class MailService : IMailService
     {
         private readonly MailSettings _mailSettings;
-        private readonly IConfiguration configuration;
-        public MailService(IOptions<MailSettings> mailSettings, IConfiguration IConfig)
+        public MailService(IOptions<MailSettings> mailSettings)
         {
             _mailSettings = mailSettings.Value;
-            configuration = IConfig;
         }
 
         public void SendEmailNow(Mail mail)
