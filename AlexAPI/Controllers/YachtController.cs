@@ -2,10 +2,11 @@
 using AlexAPI.Data.DAL.WorkUnits;
 using AlexAPI.Library.Locations;
 using AlexAPI.Models;
-using AlexAPI.Services.Interfaces;
-using AlexAPI.ViewModels;
+using AlexAPI.RequestModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
+using FluentFTP;
+using AlexAPI.Services.Interfaces;
 
 namespace AlexAPI.Controllers
 {
@@ -15,15 +16,13 @@ namespace AlexAPI.Controllers
     {
         private readonly ILogger<YachtController> logger;
         private readonly YachtWorkUnit workUnit;
-        private readonly ICSVService csvService;
-        private readonly IOpenAIService openAIService;
+        private readonly IFTPService ftpService;
 
-        public YachtController(ILogger<YachtController> logger, YachtWorkUnit workUnit, ICSVService csvService, IOpenAIService openAIService)
+        public YachtController(ILogger<YachtController> logger, YachtWorkUnit workUnit, IFTPService ftpService)
         {
             this.logger = logger;
             this.workUnit = workUnit;
-            this.csvService = csvService;
-            this.openAIService = openAIService;
+            this.ftpService = ftpService;
         }
 
         [HttpGet]
@@ -953,6 +952,7 @@ namespace AlexAPI.Controllers
             {
                 workUnit.YachtRepository.Delete(id);
                 workUnit.Save();
+                ftpService.DeleteDirectory($"Yacht/{id}");
                 return Ok();
             }
             catch (Exception ex)
@@ -1013,7 +1013,7 @@ namespace AlexAPI.Controllers
         [Roles(UserRoles.Admin, UserRoles.Broker)]
         [HttpPost]
         [Route("AddImages")]
-        public IActionResult AddImages(Guid yachtId, Image[] images)
+        public async Task<IActionResult> AddImages(Guid yachtId, [FromForm] ImageDto[] imageDtos)
         {
             try
             {
@@ -1022,10 +1022,18 @@ namespace AlexAPI.Controllers
                 {
                     yacht.Media.Images = new List<Image>();
                 }
-                foreach (var item in images)
+                foreach (var item in imageDtos)
                 {
-                    yacht.Media.Images.Add(item);
+                    yacht.Media.Images.Add(new Image
+                    {
+                        Filename = $"{item.Filename}{Path.GetExtension(item.Image.FileName)}",
+                        PhotographerName = item.PhotographerName,
+                        Type = item.Type,
+                        Url = item.Url ?? await ftpService.UploadFile(item.Image, $"Yacht/{yacht.Id}", item.Filename)
+                    });
                 }
+                workUnit.YachtRepository.Update(yacht);
+                workUnit.Save();
                 return Ok();
             }
             catch (Exception ex)

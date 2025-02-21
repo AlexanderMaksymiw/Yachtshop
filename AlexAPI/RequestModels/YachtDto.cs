@@ -1,4 +1,4 @@
-﻿namespace AlexAPI.ViewModels
+﻿namespace AlexAPI.RequestModels
 {
     public class YachtDto
     {

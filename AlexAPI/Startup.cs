@@ -4,6 +4,7 @@ using AlexAPI.Data.DAL;
 using AlexAPI.Library.Mail;
 using AlexAPI.Library.OpenAI;
 using AlexAPI.Services;
+using FluentFTP;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
@@ -12,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using System.Net;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -90,6 +92,21 @@ namespace AlexAPI
                     ValidIssuer = Configuration.GetValue<string>("JWT:ValidIssuer"),
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration.GetValue<string>("JWT:Secret")))
                 };
+            });
+
+            services.AddSingleton<FtpClient>(provider =>
+            {
+                var ftpSettings = Configuration.GetSection("FtpSettings");
+                string host = ftpSettings["Host"];
+                string username = ftpSettings["Username"];
+                string password = ftpSettings["Password"];
+
+                var client = new FtpClient(host)
+                {
+                    Credentials = new NetworkCredential(username, password)
+                };
+
+                return client;
             });
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

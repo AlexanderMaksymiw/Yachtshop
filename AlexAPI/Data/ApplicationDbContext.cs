@@ -15,6 +15,22 @@ namespace AlexAPI.Data
         {
         }
 
+        public DbSet<Yacht> Yachts { get; set; }
+        public DbSet<Specification> Specifications { get; set; }
+        public DbSet<Amenity> Amenities { get; set; }
+        public DbSet<Award> Awards { get; set; }
+        public DbSet<KeyFeature> KeyFeatures { get; set; }
+        public DbSet<Equipment> Equipments { get; set; }
+        public DbSet<Media> Media { get; set; }
+        public DbSet<PreviousName> PreviousNames { get; set; }
+        public DbSet<Toy> Toys { get; set; }
+        public DbSet<Image> Images { get; set; }
+        public DbSet<Video> Videos { get; set; }
+        public DbSet<Location> Locations { get; set; }
+        public DbSet<SubType> SubTypes { get; set; }
+        public DbSet<CharterDeal> Deals { get; set; }
+        public DbSet<DealDay> DealDays { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Link DB Table to Model
@@ -31,6 +47,8 @@ namespace AlexAPI.Data
             modelBuilder.Entity<Video>().ToTable("Videos");
             modelBuilder.Entity<Location>().ToTable("Locations");
             modelBuilder.Entity<SubType>().ToTable("SubTypes");
+            modelBuilder.Entity<CharterDeal>().ToTable("CharterDeals");
+            modelBuilder.Entity<DealDay>().ToTable("DealDays");
             base.OnModelCreating(modelBuilder);
         }
     }

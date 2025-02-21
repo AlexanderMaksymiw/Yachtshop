@@ -1,9 +1,11 @@
 ﻿using Microsoft.Identity.Client;
+using System.ComponentModel.DataAnnotations;
 
 namespace AlexAPI.Models
 {
     public class Specification
     {
+        [Key]
         public Guid Id { get; set; }
         public string? Type { get; set; }
         public string? HullType { get; set; }

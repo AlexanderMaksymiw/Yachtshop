@@ -1,6 +1,6 @@
 ﻿using AlexAPI.Models;
 
-namespace AlexAPI.ViewModels
+namespace AlexAPI.RequestModels
 {
     public class DropdownChoices
     {
