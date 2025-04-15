@@ -58,11 +58,12 @@ namespace AlexAPI
 
             services.AddCors(options =>
             {
-                options.AddDefaultPolicy(
-                    builder => builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials());
+                options.AddPolicy("AllowAll", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
             });
 
             services.AddControllers()
@@ -149,7 +150,7 @@ namespace AlexAPI
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
-            app.UseCors("CorsPolicy");
+            app.UseCors("AllowAll");
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseSwagger();
