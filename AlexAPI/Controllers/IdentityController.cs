@@ -72,7 +72,6 @@ namespace AlexAPI.Controllers
             return Unauthorized();
         }
 
-        [AllowAnonymous]
         [HttpPost]
         [Route("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
@@ -167,7 +166,7 @@ namespace AlexAPI.Controllers
             Mail mail = new Mail()
             {
                 ToEmail = email,
-                Subject = "Arneura Password Reset",
+                Subject = "Yachtshop Password Reset",
                 Body = body
 
             };
