@@ -94,6 +94,17 @@ namespace AlexAPI.Controllers
             if (!result.Succeeded || !roleResult.Succeeded)
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "User creation failed! Please check user details and try again." });
 
+            var body = fileTemplateService.GetNewUserBody(user.Email, model.Password);
+            Mail mail = new Mail()
+            {
+                ToEmail = user.Email,
+                Subject = "New Yachtshop User",
+                Body = body
+
+            };
+
+            mailService.SendEmailNow(mail);
+
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
         }
 
@@ -122,6 +133,15 @@ namespace AlexAPI.Controllers
                 await userManager.AddToRoleAsync(user, UserRoles.Broker);
             }
 
+            var body = fileTemplateService.GetNewUserBody(user.Email, model.Password);
+            Mail mail = new Mail()
+            {
+                ToEmail = user.Email,
+                Subject = "New Yachtshop Broker",
+                Body = body
+
+            };
+
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
         }
 
@@ -149,6 +169,15 @@ namespace AlexAPI.Controllers
             {
                 await userManager.AddToRoleAsync(user, UserRoles.Admin);
             }
+
+            var body = fileTemplateService.GetNewUserBody(user.Email, model.Password);
+            Mail mail = new Mail()
+            {
+                ToEmail = user.Email,
+                Subject = "New Yachtshop Admin",
+                Body = body
+
+            };
 
             return Ok(new Response { Status = "Success", Message = "User created successfully!" });
         }
