@@ -145,6 +145,8 @@ namespace AlexAPI
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ApplicationDbContext dbContext, IDbInitializer dbInitializer)
         {
             dbInitializer.Initialize();
+
+            app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseCors("CorsPolicy");
