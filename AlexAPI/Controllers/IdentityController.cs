@@ -211,7 +211,14 @@ namespace AlexAPI.Controllers
             var ASCIIToken = Encoding.ASCII.GetString(bytes);
             var user = await userManager.FindByEmailAsync(model.Email);
             var result = await userManager.ResetPasswordAsync(user, model.Token, model.Password);
-            return Ok(result);
+            if (result.Succeeded)
+            {
+                return Ok();
+            }
+            else
+            {
+                return BadRequest(result.Errors);
+            }
         }
     }
 }
