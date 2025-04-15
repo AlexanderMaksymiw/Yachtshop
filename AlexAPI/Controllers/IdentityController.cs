@@ -190,7 +190,7 @@ namespace AlexAPI.Controllers
             var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
             var baseAddress = configuration["baseAddress"];
             var URLToken = HttpUtility.UrlEncode(resetToken);
-            var resetLink = $"{baseAddress}/Password-Reset?token={URLToken}&email={email}";
+            var resetLink = $"{baseAddress}/my-account-login/reset-password?token={URLToken}&email={email}";
             var body = fileTemplateService.GetPasswordResetLinkBody(user.UserName, resetLink);
             Mail mail = new Mail()
             {
