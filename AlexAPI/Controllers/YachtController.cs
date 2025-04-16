@@ -103,8 +103,7 @@ namespace AlexAPI.Controllers
             string? hullType = null,
             string? builder = null,
             string[]? equipment = null,
-            bool? onSale = null,
-            string? location = null
+            bool? onSale = null
         )
         {
             try
@@ -134,8 +133,7 @@ namespace AlexAPI.Controllers
                     (hullType == null || x.Specification.HullType == hullType) &&
                     (builder == null || x.Specification.Builder == builder) &&
                     (equipment == null || equipment.All(e => x.Amenities.Equipment.Select(a => a.Name).Contains(e))) &&
-                    (onSale == null || x.OnSale == onSale) &&
-                    (location == null || x.Locations.Any(x => x.Name == location));
+                    (onSale == null || x.OnSale == onSale);
 
                 // Apply pagination and execute query
                 var result = workUnit.YachtRepository
