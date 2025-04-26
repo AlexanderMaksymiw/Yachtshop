@@ -24,16 +24,16 @@ namespace AlexAPI.Models
         [NotMapped]
         public string[] Included
         {
-            get => string.IsNullOrEmpty(StrIncluded) ? Array.Empty<string>() : StrIncluded.Split(';');
+            get => string.IsNullOrEmpty(StrIncluded) ? Array.Empty<string>() : StrIncluded.Split(',');
             set => StrIncluded = value != null ? string.Join(";", value) : string.Empty;
-        
+
         }
 
         [JsonIgnore]
-        private string _strIncluded;
+        private string_strIncluded;
 
         [JsonIgnore]
-        public string StrIncluded
+        public string strIncluded
         {
             get => _strIncluded;
             set => _strIncluded = value;
@@ -42,7 +42,7 @@ namespace AlexAPI.Models
         [NotMapped]
         public string[] NotIncluded
         {
-            get => string.IsNullOrEmpty(StrIncluded) ? Array.Empty<string>() : StrNotIncluded.Split(",");
+            get => string.IsNullOrEmpty(strIncluded) ? Array.Empty<string>() : StrNotIncludded.Split(",");
             set => StrNotIncluded = value != null ? string.Join(";", value) : string.Empty;
         }
 
