@@ -20,6 +20,7 @@ namespace AlexAPI.Data.DAL
 
             //Work Unit
             services.AddTransient<YachtWorkUnit>();
+            services.AddTransient<ItineraryWorkUnit>();
             return services;
         }
     }

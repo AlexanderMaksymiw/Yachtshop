@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AlexAPI.Models
 {
@@ -11,13 +12,9 @@ namespace AlexAPI.Models
         [Required]
         public string Description { get; set; }
         public string? Image { get; set; }
-        [Required]
-        public decimal FromLat { get; set; }
-        [Required]
-        public decimal FromLong { get; set; }
-        [Required]
-        public decimal ToLat { get; set; }
-        [Required]
-        public decimal ToLong { get; set; }
+        [ForeignKey("FromLocationId")]
+        public virtual Location? FromLocation { get; set; }
+        [ForeignKey("ToLocationId")]
+        public virtual Location? ToLocation { get; set; }
     }
 }

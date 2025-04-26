@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Linq.Expressions;
 using FluentFTP;
 using AlexAPI.Services.Interfaces;
+using System.Text.Json;
 
 namespace AlexAPI.Controllers
 {
@@ -638,6 +639,52 @@ namespace AlexAPI.Controllers
                 return BadRequest(ex);
             }
         }
+
+        [HttpGet]
+        [Route("UpdateLatLong")]
+        public async Task<IActionResult> UpdateLatLong()
+        {
+            try
+            {
+                var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "YachtShop"); // Required by Nominatim
+
+                var locations = workUnit.LocationRepository.Get();
+
+                foreach (var item in locations)
+                {
+                    if (string.IsNullOrWhiteSpace(item.Name)) continue;
+
+                    string url = $"https://nominatim.openstreetmap.org/search?q={Uri.EscapeDataString(item.Name)}&format=json";
+
+                    HttpResponseMessage response = await httpClient.GetAsync(url);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string json = await response.Content.ReadAsStringAsync();
+                        using var doc = JsonDocument.Parse(json);
+
+                        var results = doc.RootElement;
+                        if (results.GetArrayLength() > 0)
+                        {
+                            var firstResult = results[0];
+                            item.Latitude = decimal.Parse(firstResult.GetProperty("lat").GetString());
+                            item.Longitude = decimal.Parse(firstResult.GetProperty("lon").GetString());
+                        }
+                    }
+
+                    // Be polite — Nominatim requires 1 second between requests
+                    await Task.Delay(1000);
+                }
+
+                workUnit.Save();
+                return Ok("Lat/Lng updated using Nominatim.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
 
         [HttpGet]
         [Route("GetCaribbeanYachts")]

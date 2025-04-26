@@ -13,6 +13,8 @@ namespace AlexAPI.Models
         [Required]
         public string Duration { get; set; }
         [Required]
+        public int Guests { get; set; }
+        [Required]
         public string Description { get; set; }
         [Required]
         public DateTime Departure { get; set; }
@@ -53,9 +55,7 @@ namespace AlexAPI.Models
             get => _strNotIncludded;
             set => _strNotIncludded = value;
         }
-        public virtual ICollection<Yacht> Yachts { get; set; }
-    public virtual ICollection<ItineraryDay> Days { get; set; }
-
-
+        public virtual ICollection<Yacht>? Yachts { get; set; }
+        public virtual ICollection<ItineraryDay>? Days { get; set; }
     }
 }

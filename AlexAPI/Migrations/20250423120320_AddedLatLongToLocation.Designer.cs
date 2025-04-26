@@ -4,6 +4,7 @@ using AlexAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlexAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250423120320_AddedLatLongToLocation")]
+    partial class AddedLatLongToLocation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -183,8 +186,11 @@ namespace AlexAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("FromLocationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<decimal>("FromLat")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("FromLong")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Image")
                         .HasColumnType("nvarchar(max)");
@@ -192,16 +198,15 @@ namespace AlexAPI.Migrations
                     b.Property<int>("Number")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("ToLocationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<decimal>("ToLat")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ToLong")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CharterDealId");
-
-                    b.HasIndex("FromLocationId");
-
-                    b.HasIndex("ToLocationId");
 
                     b.ToTable("DealDays", (string)null);
                 });
@@ -262,8 +267,11 @@ namespace AlexAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("FromLocationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<decimal>("FromLat")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("FromLong")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Image")
                         .HasColumnType("nvarchar(max)");
@@ -271,17 +279,16 @@ namespace AlexAPI.Migrations
                     b.Property<int>("Number")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("ToLocationId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<decimal>("ToLat")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ToLong")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("UserItineraryId")
                         .HasColumnType("int");
 
                     b.HasKey("ID");
-
-                    b.HasIndex("FromLocationId");
-
-                    b.HasIndex("ToLocationId");
 
                     b.HasIndex("UserItineraryId");
 
@@ -799,18 +806,6 @@ namespace AlexAPI.Migrations
                     b.HasOne("AlexAPI.Models.CharterDeal", null)
                         .WithMany("Days")
                         .HasForeignKey("CharterDealId");
-
-                    b.HasOne("AlexAPI.Models.Location", "FromLocation")
-                        .WithMany()
-                        .HasForeignKey("FromLocationId");
-
-                    b.HasOne("AlexAPI.Models.Location", "ToLocation")
-                        .WithMany()
-                        .HasForeignKey("ToLocationId");
-
-                    b.Navigation("FromLocation");
-
-                    b.Navigation("ToLocation");
                 });
 
             modelBuilder.Entity("AlexAPI.Models.Image", b =>
@@ -822,21 +817,9 @@ namespace AlexAPI.Migrations
 
             modelBuilder.Entity("AlexAPI.Models.ItineraryDay", b =>
                 {
-                    b.HasOne("AlexAPI.Models.Location", "FromLocation")
-                        .WithMany()
-                        .HasForeignKey("FromLocationId");
-
-                    b.HasOne("AlexAPI.Models.Location", "ToLocation")
-                        .WithMany()
-                        .HasForeignKey("ToLocationId");
-
                     b.HasOne("AlexAPI.Models.UserItinerary", null)
                         .WithMany("Days")
                         .HasForeignKey("UserItineraryId");
-
-                    b.Navigation("FromLocation");
-
-                    b.Navigation("ToLocation");
                 });
 
             modelBuilder.Entity("AlexAPI.Models.KeyFeature", b =>

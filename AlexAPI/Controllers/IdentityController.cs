@@ -83,8 +83,7 @@ namespace AlexAPI.Controllers
             {
                 Email = model.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username,
-                secretKey2FA = Guid.NewGuid()
+                UserName = model.Username
             };
             var result = await userManager.CreateAsync(user, model.Password);
             var newUser = await userManager.FindByNameAsync(model.Username);
@@ -121,8 +120,7 @@ namespace AlexAPI.Controllers
             {
                 Email = model.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username,
-                secretKey2FA = Guid.NewGuid()
+                UserName = model.Username
             };
             var result = await userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
@@ -158,8 +156,7 @@ namespace AlexAPI.Controllers
             {
                 Email = model.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
-                UserName = model.Username,
-                secretKey2FA = Guid.NewGuid()
+                UserName = model.Username
             };
             var result = await userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
