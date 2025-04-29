@@ -1,17 +1,4 @@
-﻿using Hangfire.Logging;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.Hosting;
-using static Azure.Core.HttpHeader;
-using static Microsoft.ApplicationInsights.MetricDimensionNames.TelemetryContext;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Runtime.CompilerServices;
-using System.Runtime.ConstrainedExecution;
-using System.Threading.Channels;
-using System;
-
-namespace AlexAPI.Library.Locations
+﻿namespace AlexAPI.Library.Locations
 {
     public static class LocationHelper
     {
@@ -165,7 +152,8 @@ namespace AlexAPI.Library.Locations
             }
         }
 
-        public static List<string> MiddleEastLocations {
+        public static List<string> MiddleEastLocations
+        {
             get
             {
                 return new List<string>
@@ -208,8 +196,9 @@ namespace AlexAPI.Library.Locations
                 };
             }
         }
- 
-        public static List<string> IndianOceanLocations { 
+
+        public static List<string> IndianOceanLocations
+        {
             get
             {
                 return new List<string>
@@ -595,7 +584,8 @@ namespace AlexAPI.Library.Locations
             }
         }
 
-        public static List<string> CaribbeanLocations { 
+        public static List<string> CaribbeanLocations
+        {
             get
             {
                 return new List<string>
@@ -802,7 +792,6 @@ namespace AlexAPI.Library.Locations
             }
         }
     }
-    
-  
- };
-  
+
+
+};
