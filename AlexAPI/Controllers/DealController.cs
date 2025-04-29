@@ -67,10 +67,8 @@ namespace AlexAPI.Controllers
                     Number = x.Number,
                     Description = x.Description,
                     Image = x.Image == null ? null : ftpService.UploadFile(x.Image, $"Deal/{deal.Id}", $"{x.Number}").Result,
-                    FromLat = x.FromLat,
-                    FromLong = x.FromLong,
-                    ToLat = x.ToLat,
-                    ToLong = x.ToLong,
+                    FromLocation = workUnit.LocationRepository.GetByID(x.FromLoc),
+                    ToLocation = workUnit.LocationRepository.GetByID(x.ToLoc)
                 }).ToList();
                 return Ok();
             }

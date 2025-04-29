@@ -13,6 +13,8 @@ namespace AlexAPI.Models
         [Required]
         public string Duration { get; set; }
         [Required]
+        public int Guests { get; set; }
+        [Required]
         public string Description { get; set; }
         [Required]
         public DateTime Departure { get; set; }
@@ -22,9 +24,9 @@ namespace AlexAPI.Models
         [NotMapped]
         public string[] Included
         {
-            get => string.IsNullOrEmpty(StrIncluded) ? Array.Empty<string>() : StrIncluded.Split(';');
+            get => string.IsNullOrEmpty(StrIncluded) ? Array.Empty<string>() : StrIncluded.Split(',');
             set => StrIncluded = value != null ? string.Join(";", value) : string.Empty;
-        
+
         }
 
         [JsonIgnore]
@@ -45,17 +47,15 @@ namespace AlexAPI.Models
         }
 
         [JsonIgnore]
-        private string _strNotIncludded;
+        private string _strNotIncluded;
 
         [JsonIgnore]
         public string StrNotIncluded
         {
-            get => _strNotIncludded;
-            set => _strNotIncludded = value;
+            get => _strNotIncluded;
+            set => _strNotIncluded = value;
         }
-        public virtual ICollection<Yacht> Yachts { get; set; }
-    public virtual ICollection<ItineraryDay> Days { get; set; }
-
-
+        public virtual ICollection<Yacht>? Yachts { get; set; }
+        public virtual ICollection<ItineraryDay>? Days { get; set; }
     }
 }

@@ -6,6 +6,7 @@ using AlexAPI.RequestModels;
 using AlexAPI.Services.Interfaces;
 using FluentFTP;
 using System.Linq.Expressions;
+using Microsoft.AspNetCore.Identity;
 
 namespace AlexAPI.Controllers
 {
@@ -16,34 +17,27 @@ namespace AlexAPI.Controllers
         private readonly ILogger<ItineraryController> logger;
         private readonly ItineraryWorkUnit workUnit;
         private readonly IFTPService ftpService;
+        private readonly UserManager<ApplicationUser> userManager;
 
-        public ItineraryController(ILogger<ItineraryController> logger, ItineraryWorkUnit workUnit, IFTPService ftpService)
+        public ItineraryController(ILogger<ItineraryController> logger, ItineraryWorkUnit workUnit, IFTPService ftpService, UserManager<ApplicationUser> userManager)
         {
             this.logger = logger;
             this.workUnit = workUnit;
             this.ftpService = ftpService;
+            this.userManager = userManager;
         }
 
         [HttpPost]
         [Route("Get")]
-        public IActionResult Get(
+        public async Task<IActionResult> Get(
             int page = 0,
             int numResults = 25
-            )
+        )
         {
             try
             {
-                var includes = new Expression<Func<UserItinerary, object>>[]
-                {
-                    x => x.Yachts,
-                };
-
-                var result = workUnit.UserItineraryRepository
-                    .Get(includes: includes)
-                    .Skip(page * numResults)
-                    .Take(numResults);
-
-                return Ok(result);
+                var user = await userManager.FindByNameAsync(HttpContext.User.Identity.Name);
+                return Ok(user?.Itineraries);
             }
             catch (Exception ex)
             {
@@ -61,17 +55,17 @@ namespace AlexAPI.Controllers
                 var yachts = workUnit.YachtRepository.Get(filter: x => ItineraryDto.YachtIds.Contains(x.Id)).ToList();
                 ItineraryDto.Itinerary.Yachts = yachts;
                 var itinerary = ItineraryDto.Itinerary;
-                workUnit.UserItineraryRepository.Insert(itinerary);
                 ItineraryDto.Itinerary.Days = ItineraryDto.Days.Select(x => new ItineraryDay
                 {
                     Number = x.Number,
                     Description = x.Description,
                     Image = x.Image == null ? null : ftpService.UploadFile(x.Image, $"Itinerary/{itinerary.Id}", $"{x.Number}").Result,
-                    FromLat = x.FromLat,
-                    FromLong = x.FromLong,
-                    ToLat = x.ToLat,
-                    ToLong = x.ToLong,
+                    FromLocation = workUnit.LocationRepository.GetByID(x.FromLoc),
+                    ToLocation = workUnit.LocationRepository.GetByID(x.ToLoc),
                 }).ToList();
+                var user = await userManager.FindByNameAsync(HttpContext.User.Identity.Name);
+                user?.Itineraries.Add(itinerary);
+                workUnit.Save();
                 return Ok();
             }
             catch (Exception ex)
@@ -83,20 +77,42 @@ namespace AlexAPI.Controllers
         [HttpDelete]
         [Roles(UserRoles.User, UserRoles.Broker)]
         [Route("Delete")]
-        public IActionResult Delete(Guid Id)
+        public async Task<IActionResult> DeleteAsync(int Id)
         {
             try
             {
-                var itinerary = workUnit.UserItineraryRepository.GetByID(Id);
-                ftpService.DeleteDirectory($"Itinerary/{Id}");
-                workUnit.UserItineraryRepository.Delete(itinerary);
-                return Ok();
+                var user = await userManager.FindByNameAsync(HttpContext.User.Identity.Name);
+                if(user.Itineraries.FirstOrDefault(x => x.Id == Id) != null)
+                {
+                    user.Itineraries.Remove(user.Itineraries.FirstOrDefault(x => x.Id == Id));
+                    var itinerary = workUnit.UserItineraryRepository.GetByID(Id);
+                    ftpService.DeleteDirectory($"Itinerary/{Id}");
+                    workUnit.UserItineraryRepository.Delete(itinerary);
+                    return Ok();
+                }
+                else
+                {
+                    return Unauthorized();
+                }
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
-    
+
+        [HttpGet]
+        [Route("GetLocations")]
+        public IActionResult GetLocations()
+        {
+            try
+            {
+                return Ok(workUnit.LocationRepository.Get());
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
     }
 }

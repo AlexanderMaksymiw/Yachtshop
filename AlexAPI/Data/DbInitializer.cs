@@ -40,7 +40,6 @@ namespace AlexAPI.Data
                     UserName = superadminUsername,
                     Email = superadminEmail,
                     EmailConfirmed = true,
-                    secretKey2FA = Guid.NewGuid()
                 };
                 _ = _userManager.CreateAsync(user, superadminPassword).Result;
             }
