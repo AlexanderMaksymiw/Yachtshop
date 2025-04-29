@@ -20,41 +20,6 @@ namespace AlexAPI.Models
         public DateTime Departure { get; set; }
         [Required]
         public DateTime Arrival { get; set; }
-
-        [NotMapped]
-        public string[] Included
-        {
-            get => string.IsNullOrEmpty(StrIncluded) ? Array.Empty<string>() : StrIncluded.Split(',');
-            set => StrIncluded = value != null ? string.Join(";", value) : string.Empty;
-
-        }
-
-        [JsonIgnore]
-        private string _strIncluded;
-
-        [JsonIgnore]
-        public string StrIncluded
-        {
-            get => _strIncluded;
-            set => _strIncluded = value;
-        }
-
-        [NotMapped]
-        public string[] NotIncluded
-        {
-            get => string.IsNullOrEmpty(StrIncluded) ? Array.Empty<string>() : StrNotIncluded.Split(",");
-            set => StrNotIncluded = value != null ? string.Join(";", value) : string.Empty;
-        }
-
-        [JsonIgnore]
-        private string _strNotIncluded;
-
-        [JsonIgnore]
-        public string StrNotIncluded
-        {
-            get => _strNotIncluded;
-            set => _strNotIncluded = value;
-        }
         public virtual ICollection<Yacht>? Yachts { get; set; }
         public virtual ICollection<ItineraryDay>? Days { get; set; }
     }
