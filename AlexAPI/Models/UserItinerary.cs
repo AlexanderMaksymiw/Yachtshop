@@ -30,10 +30,10 @@ namespace AlexAPI.Models
         }
 
         [JsonIgnore]
-        private string_strIncluded;
+        private string _strIncluded;
 
         [JsonIgnore]
-        public string strIncluded
+        public string StrIncluded
         {
             get => _strIncluded;
             set => _strIncluded = value;
@@ -42,18 +42,18 @@ namespace AlexAPI.Models
         [NotMapped]
         public string[] NotIncluded
         {
-            get => string.IsNullOrEmpty(strIncluded) ? Array.Empty<string>() : StrNotIncludded.Split(",");
+            get => string.IsNullOrEmpty(StrIncluded) ? Array.Empty<string>() : StrNotIncluded.Split(",");
             set => StrNotIncluded = value != null ? string.Join(";", value) : string.Empty;
         }
 
         [JsonIgnore]
-        private string _strNotIncludded;
+        private string _strNotIncluded;
 
         [JsonIgnore]
         public string StrNotIncluded
         {
-            get => _strNotIncludded;
-            set => _strNotIncludded = value;
+            get => _strNotIncluded;
+            set => _strNotIncluded = value;
         }
         public virtual ICollection<Yacht>? Yachts { get; set; }
         public virtual ICollection<ItineraryDay>? Days { get; set; }
