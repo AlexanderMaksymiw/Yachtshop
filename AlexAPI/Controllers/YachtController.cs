@@ -624,7 +624,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> mediterraneanLocations = LocationHelper.MediterraneanLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> mediterraneanLocations = LocationHelper.MediterraneanLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                         location => mediterraneanLocations.Any(
                             medLocation => location.Name.Contains(medLocation)
@@ -655,7 +655,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> caribbeanLocations = LocationHelper.CaribbeanLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> caribbeanLocations = LocationHelper.CaribbeanLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                         location => caribbeanLocations.Any(
                             caribLocation => location.Name.Contains(caribLocation)
@@ -686,7 +686,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> AsiaLocations = LocationHelper.AsiaLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> AsiaLocations = LocationHelper.AsiaLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                             location => AsiaLocations.Any(
                                 AsiaLocation => location.Name.Contains(AsiaLocation)
@@ -717,7 +717,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> MiddleEastLocations = LocationHelper.MiddleEastLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> MiddleEastLocations = LocationHelper.MiddleEastLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                             location => MiddleEastLocations.Any(
                                 MiddleEastLocation => location.Name.Contains(MiddleEastLocation)
@@ -748,7 +748,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> IndianOceanLocations = LocationHelper.IndianOceanLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> IndianOceanLocations = LocationHelper.IndianOceanLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                             location => IndianOceanLocations.Any(
                                 IndianOceanLocation => location.Name.Contains(IndianOceanLocation)
@@ -779,7 +779,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> OceaniaLocations = LocationHelper.OceaniaLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> OceaniaLocations = LocationHelper.OceaniaLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                             location => OceaniaLocations.Any(
                                 OceaniaLocation => location.Name.Contains(OceaniaLocation)
@@ -804,7 +804,7 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                List<string> NorthAmericaLocations = LocationHelper.NorthAmericaLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> NorthAmericaLocations = LocationHelper.NorthAmericaLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                             location => NorthAmericaLocations.Any(
                                 NorthAmericaLocation => location.Name.Contains(NorthAmericaLocation)
@@ -835,7 +835,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> SouthAmericaLocations = LocationHelper.SouthAmericaLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> SouthAmericaLocations = LocationHelper.SouthAmericaLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                             location => SouthAmericaLocations.Any(
                                 SouthAmericaLocation => location.Name.Contains(SouthAmericaLocation)
@@ -866,7 +866,7 @@ namespace AlexAPI.Controllers
 
             try
             {
-                List<string> EuropeanLocations = LocationHelper.EuropeanLocations.Select(loc => loc.Name).ToList(); ;
+                List<string> EuropeanLocations = LocationHelper.EuropeanLocations;
                 return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
                             location => EuropeanLocations.Any(
                                 EuropeanLocation => location.Name.Contains(EuropeanLocation)
