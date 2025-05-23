@@ -111,12 +111,12 @@ namespace AlexAPI.Controllers
             {
                 var includes = new Expression<Func<Yacht, object>>[]
                 {
-                    x => x.Specification,
-                    x => x.Locations,
-                    x => x.Media,
+            x => x.Specification,
+            x => x.Locations,
+            x => x.Media,
+            x => x.Amenities  // needed if you filter by equipment
                 };
 
-                // Build filter dynamically
                 Expression<Func<Yacht, bool>> filter = x =>
                     (name == null || x.Name.ToLower().Contains(name.ToLower())) &&
                     (type == null || x.Specification.Type == type) &&
@@ -136,19 +136,34 @@ namespace AlexAPI.Controllers
                     (equipment == null || equipment.All(e => x.Amenities.Equipment.Select(a => a.Name).Contains(e))) &&
                     (onSale == null || x.OnSale == onSale);
 
-                // Apply pagination and execute query
-                var result = workUnit.YachtRepository
+                // Fetch, page, and project into the lightweight DTO
+                var slimResult = workUnit.YachtRepository
                     .Get(filter: filter, includes: includes)
                     .Skip(page * numResults)
-                    .Take(numResults);
+                    .Take(numResults)
+                    .Select(y => new YachtDto
+                    {
+                        Id = y.Id,
+                        Name = y.Name,
+                        Type = y.Specification.Type,
+                        Length = y.Specification.Length,
+                        Guests = y.Specification.Guests,
+                        FirstImageUrl = y.Media.Images
+                                            .Where(img => img.Type == 0)
+                                            .Select(img => img.Url)
+                                            .FirstOrDefault(),
+                        OnSale = y.OnSale
+                    })
+                    .ToList();
 
-                return Ok(result);
+                return Ok(slimResult);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
+
 
         [HttpGet]
         [Route("GetHeroImage")]
