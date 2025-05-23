@@ -146,6 +146,7 @@ namespace AlexAPI.Controllers
                         Id = y.Id,
                         Name = y.Name,
                         Type = y.Specification.Type,
+                        Price = y.Price,
                         Length = y.Specification.Length,
                         Guests = y.Specification.Guests,
                         FirstImageUrl = y.Media.Images
@@ -349,6 +350,7 @@ namespace AlexAPI.Controllers
                         yacht.Id,
                         yacht.Name,
                         yacht.OnSale,
+                        yacht.Price,
                         yacht.Specification.Length,
                         yacht.Specification.Guests,
                         FirstImage = yacht.Media.Images
