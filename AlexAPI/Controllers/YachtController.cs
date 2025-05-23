@@ -307,19 +307,51 @@ namespace AlexAPI.Controllers
         [HttpGet]
         [Route("GetFeatured")]
         public IActionResult GetFeatured(
-            int page = 0,
-            int numResults = 25
-        )
+    int page = 0,
+    int numResults = 25
+)
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.IsFeatured).Skip(page * 25).Take(numResults));
+                // 1. Specify which navigation properties to include:
+                var includes = new Expression<Func<Yacht, object>>[]
+                {
+            x => x.Specification,
+            x => x.Media,        // so we can access Media.Images
+                                 // x => x.Locations   // include only if you actually need Locations
+                };
+
+                // 2. Filter for featured yachts
+                Expression<Func<Yacht, bool>> filter = yacht => yacht.IsFeatured;
+
+                // 3. Get (with paging) and project into a slim DTO
+                var featuredYachts = workUnit.YachtRepository
+                    .Get(filter: filter, includes: includes)
+                    .Skip(page * numResults)
+                    .Take(numResults)
+                    .Select(yacht => new
+                    {
+                        yacht.Id,
+                        yacht.Name,
+                        yacht.OnSale,
+                        yacht.Specification.Length,
+                        yacht.Specification.Guests,
+                        FirstImage = yacht.Media.Images
+                                        .Where(img => img.Type == 0)
+                                        .Select(img => img.Url)
+                                        .FirstOrDefault()
+                    })
+                    .ToList();
+
+                return Ok(featuredYachts);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex);
             }
         }
+
+
 
         [HttpGet]
         [Route("GetSalesYachts")]
