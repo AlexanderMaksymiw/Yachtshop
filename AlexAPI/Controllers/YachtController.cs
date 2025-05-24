@@ -8,6 +8,7 @@ using System.Linq.Expressions;
 using FluentFTP;
 using AlexAPI.Services.Interfaces;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace AlexAPI.Controllers
 {

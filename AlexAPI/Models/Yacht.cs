@@ -12,6 +12,7 @@ namespace AlexAPI.Models
         public decimal? Price { get; set; }
         public bool OnSale { get; set; }
         public bool IsFeatured { get; set; }
+        public string? HeroImageUrl { get; set; }
         public virtual Specification Specification { get; set; } = new Specification();
         public virtual Amenity Amenities { get; set; } = new Amenity();
         public virtual ICollection<Award>? Awards { get; set; }
