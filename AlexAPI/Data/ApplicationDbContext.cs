@@ -49,6 +49,41 @@ namespace AlexAPI.Data
             modelBuilder.Entity<SubType>().ToTable("SubTypes");
             modelBuilder.Entity<CharterDeal>().ToTable("CharterDeals");
             modelBuilder.Entity<DealDay>().ToTable("DealDays");
+
+            // Configure indexes for Yacht
+            modelBuilder.Entity<Yacht>()
+                .HasIndex(y => y.Name);
+            modelBuilder.Entity<Yacht>()
+                .HasIndex(y => y.Price);
+            modelBuilder.Entity<Yacht>()
+                .HasIndex(y => y.OnSale);
+
+            // Configure indexes for Specification
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.Type);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.Length);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.Guests);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.YearBuilt);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.Cabins);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.MaxSpeed);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.GrossTonnage);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.CruisingSpeed);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.HullType);
+            modelBuilder.Entity<Specification>()
+                .HasIndex(s => s.Builder);
+
+            // Configure indexes for Location
+            modelBuilder.Entity<Location>()
+                .HasIndex(l => l.Name);
+
             base.OnModelCreating(modelBuilder);
         }
     }
