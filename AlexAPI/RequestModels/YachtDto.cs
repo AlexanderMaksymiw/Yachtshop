@@ -8,7 +8,7 @@
         public decimal? Length { get; set; }
         public int? Guests { get; set; }
         public decimal? Price { get; set; }
-        public string? FirstImageUrl { get; set; }
+        public string? HeroImageUrl { get; set; }
         public bool OnSale { get; set; }
     }
 }

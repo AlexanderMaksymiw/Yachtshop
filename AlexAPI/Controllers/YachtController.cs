@@ -150,10 +150,7 @@ namespace AlexAPI.Controllers
                         Price = y.Price,
                         Length = y.Specification.Length,
                         Guests = y.Specification.Guests,
-                        FirstImageUrl = y.Media.Images
-                                            .Where(img => img.Type == 0)
-                                            .Select(img => img.Url)
-                                            .FirstOrDefault(),
+                        HeroImageUrl = y.HeroImageUrl,
                         OnSale = y.OnSale
                     })
                     .ToList();
