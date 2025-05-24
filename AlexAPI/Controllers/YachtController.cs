@@ -165,87 +165,38 @@ namespace AlexAPI.Controllers
             }
         }
 
-        [HttpGet]                  // ← change to GET
+        [HttpGet]
         [Route("Get")]
-        public IActionResult GetYachts(
-            string? name = null,
-            string? type = null,
-            string? destination = null,
-            int page = 0,
-            int numResults = 25,
-            int? minPrice = null,
-            int? maxPrice = null,
-            int? length = null,
-            int? guests = null,
-            int? yearBuilt = null,
-            int? cabins = null,
-            int? maxSpeed = null,
-            int? grossTonnage = null,
-            int? cruisingSpeed = null,
-            string? subType = null,
-            string? hullType = null,
-            string? builder = null,
-            string[]? equipment = null,
-            bool? onSale = null
-        )
+        public IActionResult GetYachts(int page = 0, int numResults = 25)
         {
             try
             {
-                var includes = new Expression<Func<Yacht, object>>[]
-                {
-            x => x.Specification,
-            x => x.Locations,
-            x => x.Media,
-            x => x.Amenities
-                };
-
-                Expression<Func<Yacht, bool>> filter = x =>
-                    (name == null || x.Name.ToLower().Contains(name.ToLower())) &&
-                    (type == null || x.Specification.Type == type) &&
-                    (destination == null || x.Locations.Any(l => l.Name == destination)) &&
-                    (minPrice == null || x.Price >= minPrice) &&
-                    (maxPrice == null || x.Price <= maxPrice) &&
-                    (length == null || x.Specification.Length >= length) &&
-                    (guests == null || x.Specification.Guests >= guests) &&
-                    (yearBuilt == null || x.Specification.YearBuilt >= yearBuilt) &&
-                    (cabins == null || x.Specification.Cabins >= cabins) &&
-                    (maxSpeed == null || x.Specification.MaxSpeed >= maxSpeed) &&
-                    (grossTonnage == null || x.Specification.GrossTonnage >= grossTonnage) &&
-                    (cruisingSpeed == null || x.Specification.CruisingSpeed >= cruisingSpeed) &&
-                    (subType == null || x.Specification.SubTypes.Select(a => a.Name).Contains(subType)) &&
-                    (hullType == null || x.Specification.HullType == hullType) &&
-                    (builder == null || x.Specification.Builder == builder) &&
-                    (equipment == null || equipment.All(e => x.Amenities.Equipment.Select(a => a.Name).Contains(e))) &&
-                    (onSale == null || x.OnSale == onSale);
-
-                var slimResult = workUnit.YachtRepository
-                    .Get(filter: filter, includes: includes)
+                var yachts = workUnit.YachtRepository
+                    .Get() // no filter, or maybe just simple filter like OnSale if needed
                     .Skip(page * numResults)
                     .Take(numResults)
-                    .Select(y => new YachtDto
+                    .Select(y => new
                     {
-                        Id = y.Id,
-                        Name = y.Name,
-                        Type = y.Specification.Type,
-                        Price = y.Price,
+                        y.Id,
+                        y.Name,
+                        y.OnSale,
+                        y.Price,
                         Length = y.Specification.Length,
                         Guests = y.Specification.Guests,
-                        FirstImageUrl = y.Media.Images
-                                            .Where(img => img.Type == 0)
-                                            .Select(img => img.Url)
-                                            .FirstOrDefault(),
-                        OnSale = y.OnSale
+                        FirstImage = y.Media.Images
+                            .Where(img => img.Type == 0)
+                            .Select(img => img.Url)
+                            .FirstOrDefault()
                     })
                     .ToList();
 
-                return Ok(slimResult);
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
         }
-
 
 
         [HttpGet]
