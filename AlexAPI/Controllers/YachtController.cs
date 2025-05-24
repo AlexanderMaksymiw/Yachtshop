@@ -184,10 +184,8 @@ namespace AlexAPI.Controllers
                         y.Price,
                         Length = y.Specification.Length,
                         Guests = y.Specification.Guests,
-                        FirstImage = y.Media.Images
-                            .Where(img => img.Type == 0)
-                            .Select(img => img.Url)
-                            .FirstOrDefault()
+                        HeroImageUrl = y.HeroImageUrl
+
                     })
                     .ToList();
 
@@ -387,10 +385,8 @@ namespace AlexAPI.Controllers
                         yacht.Price,
                         yacht.Specification.Length,
                         yacht.Specification.Guests,
-                        FirstImage = yacht.Media.Images
-                                        .Where(img => img.Type == 0)
-                                        .Select(img => img.Url)
-                                        .FirstOrDefault()
+                        yacht.HeroImageUrl
+
                     })
                     .ToList();
 
