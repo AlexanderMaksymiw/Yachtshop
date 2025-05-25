@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Dapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Linq.Expressions;
@@ -17,9 +18,10 @@ namespace AlexAPI.Data.DAL.Repository
         }
 
         public virtual IEnumerable<TEntity> Get(
-    Expression<Func<TEntity, bool>> filter = null,
-    Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>> orderBy = null,
-    Expression<Func<TEntity, object>>[] includes = null)
+            Expression<Func<TEntity, bool>>? filter = null,
+            Func<IQueryable<TEntity>, IOrderedQueryable<TEntity>>? orderBy = null,
+            Expression<Func<TEntity, object>>[]? includes = null
+        )
         {
             IQueryable<TEntity> query = dbSet;
 
@@ -70,48 +72,97 @@ namespace AlexAPI.Data.DAL.Repository
             context.Entry(entityToUpdate).State = EntityState.Modified;
         }
 
-        public virtual IEnumerable<T> ExecuteSqlQuery<T>(string sql, params SqlParameter[] parameters) where T : class, new()
+        public IEnumerable<T> ExecuteSqlQuery<T>(string sql, object parameters = null) where T : class
         {
-            var resultList = new List<T>();
+            using var connection = context.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
 
-            using (var command = context.Database.GetDbConnection().CreateCommand())
-            {
-                command.CommandText = sql;
-                command.CommandType = CommandType.Text;
+            return connection.Query<T>(sql, parameters);
+        }
 
-                // Add parameters
-                if (parameters != null)
-                {
-                    foreach (var parameter in parameters)
-                    {
-                        command.Parameters.Add(parameter);
-                    }
-                }
+        public IEnumerable<T1> ExecuteMultiMapQuery<T1, T2>(
+            string sql,
+            Func<T1, T2, T1> map,
+            string splitOn,
+            object parameters = null)
+        where T1 : class
+        {
+            using var connection = context.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
 
-                context.Database.OpenConnection();
+            return connection.Query(sql, map, parameters, splitOn: splitOn);
+        }
 
-                using (var reader = command.ExecuteReader())
-                {
-                    var properties = typeof(T).GetProperties();
+        public IEnumerable<T1> ExecuteMultiMapQuery<T1, T2, T3>(
+            string sql,
+            Func<T1, T2, T3, T1> map,
+            string splitOn,
+            object parameters = null)
+        where T1 : class
+        {
+            using var connection = context.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
 
-                    while (reader.Read())
-                    {
-                        var entity = new T();
-                        foreach (var prop in properties)
-                        {
-                            var columnName = prop.Name;
-                            if (reader.HasRows && !reader.IsDBNull(reader.GetOrdinal(columnName)))
-                            {
-                                var value = reader[columnName];
-                                prop.SetValue(entity, value);
-                            }
-                        }
-                        resultList.Add(entity);
-                    }
-                }
-            }
+            return connection.Query(sql, map, parameters, splitOn: splitOn);
+        }
 
-            return resultList;
+        public IEnumerable<T1> ExecuteMultiMapQuery<T1, T2, T3, T4>(
+            string sql,
+            Func<T1, T2, T3, T4, T1> map,
+            string splitOn,
+            object parameters = null)
+        where T1 : class
+        {
+            using var connection = context.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
+
+            return connection.Query(sql, map, parameters, splitOn: splitOn);
+        }
+
+        public IEnumerable<T1> ExecuteMultiMapQuery<T1, T2, T3, T4, T5>(
+            string sql,
+            Func<T1, T2, T3, T4, T5, T1> map,
+            string splitOn,
+            object parameters = null)
+        where T1 : class
+        {
+            using var connection = context.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
+
+            return connection.Query(sql, map, parameters, splitOn: splitOn);
+        }
+
+        public IEnumerable<T1> ExecuteMultiMapQuery<T1, T2, T3, T4, T5, T6>(
+            string sql,
+            Func<T1, T2, T3, T4, T5, T6, T1> map,
+            string splitOn,
+            object parameters = null)
+        where T1 : class
+        {
+            using var connection = context.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
+
+            return connection.Query(sql, map, parameters, splitOn: splitOn);
+        }
+
+        public IEnumerable<T1> ExecuteMultiMapQuery<T1, T2, T3, T4, T5, T6, T7>(
+            string sql,
+            Func<T1, T2, T3, T4, T5, T6, T7, T1> map,
+            string splitOn,
+            object parameters = null)
+        where T1 : class
+        {
+            using var connection = context.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+                connection.Open();
+
+            return connection.Query(sql, map, parameters, splitOn: splitOn);
         }
     }
 }

@@ -1,10 +1,7 @@
-﻿using AlexAPI.Library.Mail;
-using AlexAPI.Library.OpenAI;
+﻿using AlexAPI.Library.OpenAI;
 using AlexAPI.ResponseModels;
 using AlexAPI.Services.Interfaces;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Options;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 

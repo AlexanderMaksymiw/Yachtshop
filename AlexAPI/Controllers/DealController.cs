@@ -3,9 +3,7 @@ using AlexAPI.Data.DAL.WorkUnits;
 using AlexAPI.Models;
 using AlexAPI.RequestModels;
 using AlexAPI.Services.Interfaces;
-using FluentFTP;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq.Expressions;
 
 namespace AlexAPI.Controllers
 {
@@ -33,17 +31,35 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                var includes = new Expression<Func<CharterDeal, object>>[]
-                {
-                    x => x.Yachts,
-                };
+                var dealDict = new Dictionary<Guid, CharterDeal>();
 
-                var result = workUnit.CharterDealRepository
-                    .Get(includes: includes)
-                    .Skip(page * numResults)
-                    .Take(numResults);
-                
-                return Ok(result);
+                var sql = @"
+                    SELECT d.*, y.*
+                    FROM CharterDeals d
+                    LEFT JOIN CharterDealYachts dy ON d.Id = dy.CharterDealId
+                    LEFT JOIN Yachts y ON dy.YachtId = y.Id
+                    ORDER BY d.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var deals = workUnit.CharterDealRepository.ExecuteMultiMapQuery<CharterDeal, Yacht>(
+                    sql,
+                    map: (deal, yacht) =>
+                    {
+                        deal.Yachts ??= new List<Yacht>();
+                        if (yacht != null && !deal.Yachts.Any(y => y.Id == yacht.Id))
+                            deal.Yachts.Add(yacht);
+                        return deal;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
+
+                return Ok(deals);
             }
             catch (Exception ex)
             {
@@ -54,7 +70,7 @@ namespace AlexAPI.Controllers
         [HttpPost]
         [Roles(UserRoles.Admin, UserRoles.Broker)]
         [Route("Create")]
-        public async Task<IActionResult> Create([FromBody] DealDto dealDto)
+        public IActionResult Create([FromBody] DealDto dealDto)
         {
             try
             {

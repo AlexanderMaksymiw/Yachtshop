@@ -4,11 +4,9 @@ using AlexAPI.Library.Locations;
 using AlexAPI.Models;
 using AlexAPI.RequestModels;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq.Expressions;
-using FluentFTP;
 using AlexAPI.Services.Interfaces;
-using System.Text.Json;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using Dapper;
 
 namespace AlexAPI.Controllers
 {
@@ -33,27 +31,51 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                string[] resultOrder = [
-                    "1st Place",
-                    "Winner",
-                    "Joint Winner",
-                    "2nd Place",
-                    "3rd Place",
-                    "Finalist",
-                    "Judges' Special Award",
-                    "Special Commendation",
-                    "Nomination",
-                    "NULL",
-                ];
-                var yacht = workUnit.YachtRepository.GetByID(id);
-                yacht.Awards = yacht.Awards
-                    .OrderBy(x => Array.IndexOf(resultOrder, x.Result))
-                    .ToList();
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                string sql = @"
+                    SELECT y.*, s.*, m.*, a.*, l.*, kf.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    LEFT JOIN KeyFeatures kf ON y.Id = kf.YachtId
+                    WHERE y.Id = @Id";
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Amenity, Location, KeyFeature>(
+                    sql,
+                    (y, s, m, a, l, kf) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Amenities = a;
+                            yacht.Locations = new List<Location>();
+                            yacht.KeyFeatures = new List<KeyFeature>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        if (kf != null && !yacht.KeyFeatures.Any(x => x.Id == kf.Id))
+                            yacht.KeyFeatures.Add(kf);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id,Id,Id",
+                    parameters: new { Id = id }
+                );
+
+                var yacht = result.FirstOrDefault();
+
                 return Ok(yacht);
             }
             catch (Exception ex)
             {
-
                 return BadRequest(ex);
             }
         }
@@ -64,22 +86,42 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                var includes = new Expression<Func<Yacht, object>>[]
-                {
-                    x => x.Specification,
-                    x => x.Locations,
-                    x => x.Media,
-                };
+                var yachtDict = new Dictionary<Guid, Yacht>();
 
-                // Build filter dynamically
-                Expression<Func<Yacht, bool>> filter = x => ids.Contains(x.Id);
+                string sql = @"
+                    SELECT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE y.Id IN @Ids";
 
-                var yacht = workUnit.YachtRepository.Get(filter: filter, includes: includes);
-                return Ok(yacht);
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: new { Ids = ids }
+                );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-
                 return BadRequest(ex);
             }
         }
@@ -110,52 +152,139 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                var includes = new Expression<Func<Yacht, object>>[]
+                var parameters = new List<SqlParameter>();
+                var conditions = new List<string>();
+
+                if (!string.IsNullOrEmpty(name))
                 {
-            x => x.Specification,
-            x => x.Locations,
-            x => x.Media,
-            x => x.Amenities  // needed if you filter by equipment
-                };
+                    conditions.Add("y.Name LIKE @Name");
+                    parameters.Add(new SqlParameter("@Name", $"%{name}%"));
+                }
 
-                Expression<Func<Yacht, bool>> filter = x =>
-                    (name == null || x.Name.ToLower().Contains(name.ToLower())) &&
-                    (type == null || x.Specification.Type == type) &&
-                    (destination == null || x.Locations.Any(l => l.Name == destination)) &&
-                    (minPrice == null || x.Price >= minPrice) &&
-                    (maxPrice == null || x.Price <= maxPrice) &&
-                    (length == null || x.Specification.Length >= length) &&
-                    (guests == null || x.Specification.Guests >= guests) &&
-                    (yearBuilt == null || x.Specification.YearBuilt >= yearBuilt) &&
-                    (cabins == null || x.Specification.Cabins >= cabins) &&
-                    (maxSpeed == null || x.Specification.MaxSpeed >= maxSpeed) &&
-                    (grossTonnage == null || x.Specification.GrossTonnage >= grossTonnage) &&
-                    (cruisingSpeed == null || x.Specification.CruisingSpeed >= cruisingSpeed) &&
-                    (subType == null || x.Specification.SubTypes.Select(a => a.Name).Contains(subType)) &&
-                    (hullType == null || x.Specification.HullType == hullType) &&
-                    (builder == null || x.Specification.Builder == builder) &&
-                    (equipment == null || equipment.All(e => x.Amenities.Equipment.Select(a => a.Name).Contains(e))) &&
-                    (onSale == null || x.OnSale == onSale);
+                if (!string.IsNullOrEmpty(type))
+                {
+                    conditions.Add("s.Type = @Type");
+                    parameters.Add(new SqlParameter("@Type", type));
+                }
 
-                // Fetch, page, and project into the lightweight DTO
-                var slimResult = workUnit.YachtRepository
-                    .Get(filter: filter, includes: includes)
-                    .Skip(page * numResults)
-                    .Take(numResults)
-                    .Select(y => new YachtDto
+                if (!string.IsNullOrEmpty(destination))
+                {
+                    conditions.Add("EXISTS (SELECT 1 FROM YachtLocations yl JOIN Locations l ON yl.LocationId = l.Id WHERE yl.YachtId = y.Id AND l.Name = @Destination)");
+                    parameters.Add(new SqlParameter("@Destination", destination));
+                }
+
+                if (minPrice.HasValue)
+                {
+                    conditions.Add("y.Price >= @MinPrice");
+                    parameters.Add(new SqlParameter("@MinPrice", minPrice.Value));
+                }
+
+                if (maxPrice.HasValue)
+                {
+                    conditions.Add("y.Price <= @MaxPrice");
+                    parameters.Add(new SqlParameter("@MaxPrice", maxPrice.Value));
+                }
+
+                if (length.HasValue)
+                {
+                    conditions.Add("s.Length >= @Length");
+                    parameters.Add(new SqlParameter("@Length", length.Value));
+                }
+
+                if (guests.HasValue)
+                {
+                    conditions.Add("s.Guests >= @Guests");
+                    parameters.Add(new SqlParameter("@Guests", guests.Value));
+                }
+
+                if (yearBuilt.HasValue)
+                {
+                    conditions.Add("s.YearBuilt >= @YearBuilt");
+                    parameters.Add(new SqlParameter("@YearBuilt", yearBuilt.Value));
+                }
+
+                if (cabins.HasValue)
+                {
+                    conditions.Add("s.Cabins >= @Cabins");
+                    parameters.Add(new SqlParameter("@Cabins", cabins.Value));
+                }
+
+                if (maxSpeed.HasValue)
+                {
+                    conditions.Add("s.MaxSpeed >= @MaxSpeed");
+                    parameters.Add(new SqlParameter("@MaxSpeed", maxSpeed.Value));
+                }
+
+                if (grossTonnage.HasValue)
+                {
+                    conditions.Add("s.GrossTonnage >= @GrossTonnage");
+                    parameters.Add(new SqlParameter("@GrossTonnage", grossTonnage.Value));
+                }
+
+                if (cruisingSpeed.HasValue)
+                {
+                    conditions.Add("s.CruisingSpeed >= @CruisingSpeed");
+                    parameters.Add(new SqlParameter("@CruisingSpeed", cruisingSpeed.Value));
+                }
+
+                if (!string.IsNullOrEmpty(subType))
+                {
+                    conditions.Add("EXISTS (SELECT 1 FROM SpecificationSubTypes sst JOIN SubTypes st ON sst.SubTypeId = st.Id WHERE sst.SpecificationId = s.Id AND st.Name = @SubType)");
+                    parameters.Add(new SqlParameter("@SubType", subType));
+                }
+
+                if (!string.IsNullOrEmpty(hullType))
+                {
+                    conditions.Add("s.HullType = @HullType");
+                    parameters.Add(new SqlParameter("@HullType", hullType));
+                }
+
+                if (!string.IsNullOrEmpty(builder))
+                {
+                    conditions.Add("s.Builder = @Builder");
+                    parameters.Add(new SqlParameter("@Builder", builder));
+                }
+
+                if (equipment != null && equipment.Any())
+                {
+                    conditions.Add("EXISTS (SELECT 1 FROM AmenityEquipment ae JOIN Equipment e ON ae.EquipmentId = e.Id WHERE ae.AmenityId = a.Id AND e.Name IN @Equipment)");
+                    parameters.Add(new SqlParameter("@Equipment", equipment));
+                }
+
+                if (onSale.HasValue)
+                {
+                    conditions.Add("y.OnSale = @OnSale");
+                    parameters.Add(new SqlParameter("@OnSale", onSale.Value));
+                }
+
+                string whereClause = conditions.Any() ? "WHERE " + string.Join(" AND ", conditions) : "";
+
+                string sql = $@"
+                    SELECT 
+                        y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
+                    {whereClause}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
                     {
-                        Id = y.Id,
-                        Name = y.Name,
-                        Type = y.Specification.Type,
-                        Price = y.Price,
-                        Length = y.Specification.Length,
-                        Guests = y.Specification.Guests,
-                        HeroImageUrl = y.HeroImageUrl,
-                        OnSale = y.OnSale
-                    })
-                    .ToList();
-
-                return Ok(slimResult);
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
@@ -169,22 +298,29 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                var yachts = workUnit.YachtRepository
-                    .Get() // no filter, or maybe just simple filter like OnSale if needed
-                    .Skip(page * numResults)
-                    .Take(numResults)
-                    .Select(y => new
-                    {
-                        y.Id,
-                        y.Name,
-                        y.OnSale,
-                        y.Price,
-                        Length = y.Specification.Length,
-                        Guests = y.Specification.Guests,
-                        HeroImageUrl = y.HeroImageUrl
+                string sql = @"
+                    SELECT 
+                        y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    ORDER BY y.Id
+                    OFFSET @Page ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
 
-                    })
-                    .ToList();
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id", // split on Specification.Id
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
 
                 return Ok(yachts);
             }
@@ -194,14 +330,47 @@ namespace AlexAPI.Controllers
             }
         }
 
-
         [HttpGet]
         [Route("GetHeroImage")]
         public IActionResult GetHeroImage(Guid id)
         {
             try
             {
-                return Ok(workUnit.YachtRepository.GetByID(id).Media.Images?.First(x => x.Type == 0));
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                string sql = @"
+                    SELECT y.*, s.*, m.*, i.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN Images i ON m.Id = i.MediaId AND i.[Type] = 0
+                    WHERE y.Id = @Id";
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Image>(
+                    sql,
+                    (y, s, m, i) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Media.Images = new List<Image>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+
+                        if (i != null && !yacht.Media.Images.Any(x => x.Id == i.Id))
+                            yacht.Media.Images.Add(i);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id",
+                    parameters: new { Id = id }
+                );
+
+                var yacht = result.FirstOrDefault();
+
+                return Ok(yacht.Media.Images.FirstOrDefault());
             }
             catch (Exception ex)
             {
@@ -235,10 +404,16 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get().Select(x => new Tuple<Guid, string>(
+                var sql = @"
+                    SELECT y.*
+                    FROM Yachts y
+                ";
+
+                return Ok(workUnit.YachtRepository.ExecuteSqlQuery<Yacht>(sql, new { }).Select(x => new
+                {
                     x.Id,
                     x.Name
-                )));
+                }));
             }
             catch (Exception ex)
             {
@@ -256,11 +431,34 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price <= 50000).Skip(page * 25).Take(numResults));
+                string sql = @"
+                    SELECT y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    WHERE y.Price <= 50000
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
+
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -274,11 +472,34 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Price >= 50000).Skip(page * 25).Take(numResults));
+                string sql = @"
+                    SELECT y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    WHERE y.Price >= 50000
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
+
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -308,94 +529,199 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                var includes = new Expression<Func<Yacht, object>>[]
+                var parameters = new DynamicParameters();
+                var conditions = new List<string>();
+
+                if (!string.IsNullOrEmpty(name))
                 {
-                    x => x.Specification,
-                    x => x.Locations,
-                    x => x.Media,
-                };
+                    conditions.Add("y.Name LIKE @Name");
+                    parameters.Add("@Name", $"%{name}%");
+                }
 
-                // Build filter dynamically
-                Expression<Func<Yacht, bool>> filter = x =>
-                    (name == null || x.Name.ToLower().Contains(name.ToLower())) &&
-                    (type == null || x.Specification.Type == type) &&
-                    (destination == null || x.Locations.Any(l => l.Name == destination)) &&
-                    (minPrice == null || x.Price >= minPrice) &&
-                    (maxPrice == null || x.Price <= maxPrice) &&
-                    (length == null || x.Specification.Length >= length) &&
-                    (guests == null || x.Specification.Guests >= guests) &&
-                    (yearBuilt == null || x.Specification.YearBuilt >= yearBuilt) &&
-                    (cabins == null || x.Specification.Cabins >= cabins) &&
-                    (maxSpeed == null || x.Specification.MaxSpeed >= maxSpeed) &&
-                    (grossTonnage == null || x.Specification.GrossTonnage >= grossTonnage) &&
-                    (cruisingSpeed == null || x.Specification.CruisingSpeed >= cruisingSpeed) &&
-                    (subType == null || x.Specification.SubTypes.Select(a => a.Name).Contains(subType)) &&
-                    (hullType == null || x.Specification.HullType == hullType) &&
-                    (builder == null || x.Specification.Builder == builder) &&
-                    (equipment == null || equipment.All(e => x.Amenities.Equipment.Select(a => a.Name).Contains(e))) &&
-                    (x.OnSale == false);
+                if (!string.IsNullOrEmpty(type))
+                {
+                    conditions.Add("s.Type = @Type");
+                    parameters.Add("@Type", type);
+                }
 
-                // Apply pagination and execute query
-                var result = workUnit.YachtRepository
-                    .Get(filter: filter, includes: includes)
-                    .Skip(page * numResults)
-                    .Take(numResults);
+                if (!string.IsNullOrEmpty(destination))
+                {
+                    conditions.Add("EXISTS (SELECT 1 FROM LocationYacht ly JOIN Locations l ON ly.LocationsId = l.Id WHERE ly.YachtsId = y.Id AND l.Name = @Destination)");
+                    parameters.Add("@Destination", destination);
+                }
 
-                return Ok(result);
+                if (minPrice.HasValue)
+                {
+                    conditions.Add("y.Price >= @MinPrice");
+                    parameters.Add("@MinPrice", minPrice.Value);
+                }
+
+                if (maxPrice.HasValue)
+                {
+                    conditions.Add("y.Price <= @MaxPrice");
+                    parameters.Add("@MaxPrice", maxPrice.Value);
+                }
+
+                if (length.HasValue)
+                {
+                    conditions.Add("s.Length >= @Length");
+                    parameters.Add("@Length", length.Value);
+                }
+
+                if (guests.HasValue)
+                {
+                    conditions.Add("s.Guests >= @Guests");
+                    parameters.Add("@Guests", guests.Value);
+                }
+
+                if (yearBuilt.HasValue)
+                {
+                    conditions.Add("s.YearBuilt >= @YearBuilt");
+                    parameters.Add("@YearBuilt", yearBuilt.Value);
+                }
+
+                if (cabins.HasValue)
+                {
+                    conditions.Add("s.Cabins >= @Cabins");
+                    parameters.Add("@Cabins", cabins.Value);
+                }
+
+                if (maxSpeed.HasValue)
+                {
+                    conditions.Add("s.MaxSpeed >= @MaxSpeed");
+                    parameters.Add("@MaxSpeed", maxSpeed.Value);
+                }
+
+                if (grossTonnage.HasValue)
+                {
+                    conditions.Add("s.GrossTonnage >= @GrossTonnage");
+                    parameters.Add("@GrossTonnage", grossTonnage.Value);
+                }
+
+                if (cruisingSpeed.HasValue)
+                {
+                    conditions.Add("s.CruisingSpeed >= @CruisingSpeed");
+                    parameters.Add("@CruisingSpeed", cruisingSpeed.Value);
+                }
+
+                if (!string.IsNullOrEmpty(subType))
+                {
+                    conditions.Add("EXISTS (SELECT 1 FROM SpecificationSubTypes sst JOIN SubTypes st ON sst.SubTypeId = st.Id WHERE sst.SpecificationId = s.Id AND st.Name = @SubType)");
+                    parameters.Add("@SubType", subType);
+                }
+
+                if (!string.IsNullOrEmpty(hullType))
+                {
+                    conditions.Add("s.HullType = @HullType");
+                    parameters.Add("@HullType", hullType);
+                }
+
+                if (!string.IsNullOrEmpty(builder))
+                {
+                    conditions.Add("s.Builder = @Builder");
+                    parameters.Add("@Builder", builder);
+                }
+
+                if (equipment != null && equipment.Any())
+                {
+                    conditions.Add("EXISTS (SELECT 1 FROM AmenityEquipment ae JOIN Equipment e ON ae.EquipmentId = e.Id WHERE ae.AmenityId = a.Id AND e.Name IN @Equipment)");
+                    parameters.Add("@Equipment", equipment);
+                }
+
+                // Always filter for non-sale yachts
+                conditions.Add("y.OnSale = 0");
+
+                string whereClause = conditions.Any() ? "WHERE " + string.Join(" AND ", conditions) : "";
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
+                    {whereClause}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                parameters.Add("@Page", page);
+                parameters.Add("@NumResults", numResults);
+
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: parameters
+                );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-                return BadRequest();
+                return BadRequest(ex.Message);
             }
         }
 
         [HttpGet]
         [Route("GetFeatured")]
         public IActionResult GetFeatured(
-    int page = 0,
-    int numResults = 25
-)
+            int page = 0,
+            int numResults = 25
+        )
         {
             try
             {
-                // 1. Specify which navigation properties to include:
-                var includes = new Expression<Func<Yacht, object>>[]
-                {
-            x => x.Specification,
-            x => x.Media,        // so we can access Media.Images
-                                 // x => x.Locations   // include only if you actually need Locations
-                };
+                string sql = @"
+                    SELECT y.*, s.*, m.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    WHERE y.IsFeatured = 1
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
 
-                // 2. Filter for featured yachts
-                Expression<Func<Yacht, bool>> filter = yacht => yacht.IsFeatured;
-
-                // 3. Get (with paging) and project into a slim DTO
-                var featuredYachts = workUnit.YachtRepository
-                    .Get(filter: filter, includes: includes)
-                    .Skip(page * numResults)
-                    .Take(numResults)
-                    .Select(yacht => new
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media>(
+                    sql,
+                    map: (yacht, s, m) =>
                     {
-                        yacht.Id,
-                        yacht.Name,
-                        yacht.OnSale,
-                        yacht.Price,
-                        yacht.Specification.Length,
-                        yacht.Specification.Guests,
-                        yacht.HeroImageUrl
+                        yacht.Specification = s;
+                        yacht.Media = m;
+                        return yacht;
+                    },
+                    splitOn: "Id,Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
 
-                    })
-                    .ToList();
-
-                return Ok(featuredYachts);
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex);
             }
         }
-
-
 
         [HttpGet]
         [Route("GetSalesYachts")]
@@ -406,47 +732,66 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.OnSale).Skip(page * 25).Take(numResults));
+                var sql = @"
+                    SELECT y.*
+                    FROM Yachts y
+                    WHERE y.OnSale = 1
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY
+                ";
+
+                return Ok(workUnit.YachtRepository.ExecuteSqlQuery<Yacht>(sql, new {
+                    Page = page,
+                    NumResults = numResults
+                }));
             }
             catch (Exception ex)
             {
 
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetMotorYachts")]
-        public IActionResult GetMotorYachts(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Motor").Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
                 return BadRequest(ex);
             }
         }
 
         [HttpGet]
         [Route("GetSailingYachts")]
-        public IActionResult GetSailingYachts(
+        public IActionResult GetYachtsByType(
+            string type,
             int page = 0,
             int numResults = 25
         )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.Type == "Sailing").Skip(page * 25).Take(numResults));
+                string sql = @"
+                    SELECT y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    WHERE s.Type = @Type
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Type = type,
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
+
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -460,61 +805,31 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Catamaran").Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
+                string sql = @"
+                    SELECT y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    WHERE s.HullType = 'Catamaran'
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
 
-        [HttpGet]
-        [Route("GetGulets")]
-        public IActionResult GetGulets(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Gulets")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
 
-        [HttpGet]
-        [Route("GetExplorers")]
-        public IActionResult GetExplorers(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Explorer")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetSportFisherman")]
-        public IActionResult GetSportFisherman(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Fisherman")).Skip(page * 25).Take(numResults));
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
@@ -523,164 +838,46 @@ namespace AlexAPI.Controllers
         }
 
         [HttpGet]
-        [Route("GetMonoHull")]
-        public IActionResult GetMonoHull(
+        [Route("GetYachtBySubType")]
+        public IActionResult GetYachtBySubType(
+            string subType,
             int page = 0,
             int numResults = 25
         )
         {
             try
             {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Mono Hull").Skip(page * 25).Take(numResults));
+                string sql = @"
+                    SELECT y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN SpecificationSubTypes sst ON s.Id = sst.SpecificationId
+                    LEFT JOIN SubTypes st ON sst.SubTypeId = st.Id
+                    WHERE st.Name = @SubType
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        SubType = subType,
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
+
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetTrimaran")]
-        public IActionResult GetTrimaran(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.HullType == "Trimaran").Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetFlybridge")]
-        public IActionResult GetFlybridge(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Flybridge")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetSportBoat")]
-        public IActionResult GetSportBoat(
-
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Sport Boat")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetMaxi")]
-        public IActionResult GetMaxi(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Maxi")).Skip(page * numResults).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetJClass")]
-        public IActionResult GetJClass(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "J Class")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetMotorSailers")]
-        public IActionResult GetMotorSailers(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Motor Sailer")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetSupportYachts")]
-        public IActionResult GetSupportYachts(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Support Yacht")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetConversion")]
-        public IActionResult GetConversion(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Specification.SubTypes!.Any(t => t.Name == "Conversion")).Skip(page * 25).Take(numResults));
-            }
-            catch (Exception ex)
-            {
-                
                 return BadRequest(ex);
             }
         }
@@ -692,26 +889,41 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
-                List<string> mediterraneanLocations = LocationHelper.MediterraneanLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                        location => mediterraneanLocations.Any(
-                            medLocation => location.Name.Contains(medLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> mediterraneanLocations = LocationHelper.MediterraneanLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", mediterraneanLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -723,26 +935,41 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
-                List<string> caribbeanLocations = LocationHelper.CaribbeanLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                        location => caribbeanLocations.Any(
-                            caribLocation => location.Name.Contains(caribLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> caribbeanLocations = LocationHelper.CaribbeanLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", caribbeanLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -754,26 +981,54 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
-                List<string> AsiaLocations = LocationHelper.AsiaLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => AsiaLocations.Any(
-                                AsiaLocation => location.Name.Contains(AsiaLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> asiaLocations = LocationHelper.AsiaLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", asiaLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -785,26 +1040,54 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
-                List<string> MiddleEastLocations = LocationHelper.MiddleEastLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => MiddleEastLocations.Any(
-                                MiddleEastLocation => location.Name.Contains(MiddleEastLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> middleEastLocations = LocationHelper.MiddleEastLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", middleEastLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -816,26 +1099,54 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
-                List<string> IndianOceanLocations = LocationHelper.IndianOceanLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => IndianOceanLocations.Any(
-                                IndianOceanLocation => location.Name.Contains(IndianOceanLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> indianOceanLocations = LocationHelper.IndianOceanLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", indianOceanLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -847,26 +1158,54 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
-                List<string> OceaniaLocations = LocationHelper.OceaniaLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => OceaniaLocations.Any(
-                                OceaniaLocation => location.Name.Contains(OceaniaLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> oceaniaLocations = LocationHelper.OceaniaLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", oceaniaLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -880,18 +1219,52 @@ namespace AlexAPI.Controllers
         {
             try
             {
-                List<string> NorthAmericaLocations = LocationHelper.NorthAmericaLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => NorthAmericaLocations.Any(
-                                NorthAmericaLocation => location.Name.Contains(NorthAmericaLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> northAmericaLocations = LocationHelper.NorthAmericaLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", northAmericaLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -903,26 +1276,54 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
-                List<string> SouthAmericaLocations = LocationHelper.SouthAmericaLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => SouthAmericaLocations.Any(
-                                SouthAmericaLocation => location.Name.Contains(SouthAmericaLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> southAmericaLocations = LocationHelper.SouthAmericaLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", southAmericaLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-                
                 return BadRequest(ex);
             }
         }
@@ -934,26 +1335,54 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
-                List<string> EuropeanLocations = LocationHelper.EuropeanLocations;
-                return Ok(workUnit.YachtRepository.Get(yacht => yacht.Locations.Any(
-                            location => EuropeanLocations.Any(
-                                EuropeanLocation => location.Name.Contains(EuropeanLocation)
-                            )
-                        )
-                    ).Skip(page * 25).Take(numResults)
+                List<string> europeanLocations = LocationHelper.EuropeanLocations.Select(x => x.Name).ToList();
+                string locationCondition = string.Join(" OR ", europeanLocations.Select(loc => $"l.Name LIKE '%{loc}%'"));
+
+                string sql = $@"
+                    SELECT DISTINCT y.*, s.*, m.*, l.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
+                    LEFT JOIN Locations l ON ly.LocationsId = l.Id
+                    WHERE {locationCondition}
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Location>(
+                    sql,
+                    (y, s, m, l) =>
+                    {
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m;
+                            yacht.Locations = new List<Location>();
+                            yachtDict[yacht.Id] = yacht;
+                        }
+                        if (l != null && !yacht.Locations.Any(x => x.Id == l.Id))
+                            yacht.Locations.Add(l);
+
+                        return yacht;
+                    },
+                    splitOn: "Id,Id,Id,Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
                 );
+
+                return Ok(yachtDict.Values);
             }
             catch (Exception ex)
             {
-
                 return BadRequest(ex);
             }
         }
@@ -965,23 +1394,41 @@ namespace AlexAPI.Controllers
             int numResults = 25
         )
         {
-            var includes = new Expression<Func<Yacht, object>>[]
-            {
-                x => x.Specification,
-                x => x.Locations, x => x.Media, x => x.Awards, x => x.Amenities, x => x.Price,
-            };
-
             try
             {
+                string sql = @"
+                    SELECT DISTINCT y.*, s.*
+                    FROM Yachts y
+                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
+                    LEFT JOIN AmenityEquipment ae ON a.Id = ae.AmenityId
+                    LEFT JOIN Equipment e ON ae.EquipmentId = e.Id
+                    LEFT JOIN AmenityToys at ON a.Id = at.AmenityId
+                    LEFT JOIN Toys t ON at.ToyId = t.Id
+                    WHERE e.Name LIKE '%scuba%' OR t.Name LIKE '%scuba%'
+                    ORDER BY y.Id
+                    OFFSET @Page * @NumResults ROWS
+                    FETCH NEXT @NumResults ROWS ONLY";
 
-                return Ok(workUnit.YachtRepository.Get(yacht => 
-                    yacht.Amenities.Equipment!.Any(x => x.Name.ToLower().Contains("scuba")) ||
-                    yacht.Amenities.Toys!.Any(x => x.Name.ToLower().Contains("scuba"))
-                ).Skip(page * 25).Take(numResults));
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                    sql,
+                    map: (yacht, spec) =>
+                    {
+                        yacht.Specification = spec;
+                        return yacht;
+                    },
+                    splitOn: "Id",
+                    parameters: new
+                    {
+                        Page = page,
+                        NumResults = numResults
+                    }
+                );
+
+                return Ok(yachts);
             }
             catch (Exception ex)
             {
-
                 return BadRequest(ex);
             }
         }
