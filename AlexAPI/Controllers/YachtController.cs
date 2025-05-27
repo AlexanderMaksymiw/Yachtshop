@@ -275,6 +275,18 @@ namespace AlexAPI.Controllers
                     OFFSET @Page * @NumResults ROWS
                     FETCH NEXT @NumResults ROWS ONLY";
 
+                var sqlParams = new DynamicParameters();
+
+                // Add paging params
+                sqlParams.Add("@Page", page);
+                sqlParams.Add("@NumResults", numResults);
+
+                // Add all your collected SqlParameters
+                foreach (var param in parameters)
+                {
+                    sqlParams.Add(param.ParameterName, param.Value);
+                }
+
                 var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
                     sql,
                     map: (yacht, spec) =>
@@ -283,11 +295,7 @@ namespace AlexAPI.Controllers
                         return yacht;
                     },
                     splitOn: "Id",
-                    parameters: new
-                    {
-                        Page = page,
-                        NumResults = numResults
-                    }
+                    parameters: sqlParams
                 );
                 return Ok(yachts);
             }
