@@ -34,19 +34,20 @@ namespace AlexAPI.Controllers
                 var yachtDict = new Dictionary<Guid, Yacht>();
 
                 string sql = @"
-                    SELECT y.*, s.*, m.*, a.*, l.*, kf.*
+                    SELECT y.*, s.*, m.*, i.*, a.*, l.*, kf.*
                     FROM Yachts y
                     LEFT JOIN Specifications s ON y.SpecificationId = s.Id
                     LEFT JOIN Media m ON y.MediaId = m.Id
+                    LEFT JOIN Images i ON m.Id = i.MediaId
                     LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
                     LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
                     LEFT JOIN Locations l ON ly.LocationsId = l.Id
                     LEFT JOIN KeyFeatures kf ON y.Id = kf.YachtId
                     WHERE y.Id = @Id";
 
-                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Amenity, Location, KeyFeature>(
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Image, Amenity, Location, KeyFeature>(
                     sql,
-                    (y, s, m, a, l, kf) =>
+                    (y, s, m, i, a, l, kf) =>
                     {
                         if (!yachtDict.TryGetValue(y.Id, out var yacht))
                         {
@@ -54,6 +55,7 @@ namespace AlexAPI.Controllers
                             yacht.Specification = s;
                             yacht.Media = m;
                             yacht.Amenities = a;
+                            yacht.Media.Images = new List<Image>();
                             yacht.Locations = new List<Location>();
                             yacht.KeyFeatures = new List<KeyFeature>();
                             yachtDict[yacht.Id] = yacht;
@@ -64,9 +66,12 @@ namespace AlexAPI.Controllers
                         if (kf != null && !yacht.KeyFeatures.Any(x => x.Id == kf.Id))
                             yacht.KeyFeatures.Add(kf);
 
+                        if (i != null && !yacht.Media.Images.Any(x => x.Id == i.Id))
+                            yacht.Media.Images.Add(i);
+
                         return yacht;
                     },
-                    splitOn: "Id,Id,Id,Id,Id,Id",
+                    splitOn: "Id,Id,Id,Id,Id,Id,Id",
                     parameters: new { Id = id }
                 );
 
