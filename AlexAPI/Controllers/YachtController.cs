@@ -174,7 +174,7 @@ namespace AlexAPI.Controllers
 
                 if (!string.IsNullOrEmpty(destination))
                 {
-                    conditions.Add("EXISTS (SELECT 1 FROM YachtLocations yl JOIN Locations l ON yl.LocationId = l.Id WHERE yl.YachtId = y.Id AND l.Name = @Destination)");
+                    conditions.Add("EXISTS (SELECT 1 FROM locationYacht yl JOIN Locations l ON yl.LocationsId = l.Id WHERE yl.YachtsId = y.Id AND l.Name = @Destination)");
                     parameters.Add(new SqlParameter("@Destination", destination));
                 }
 
