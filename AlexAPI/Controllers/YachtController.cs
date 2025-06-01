@@ -692,35 +692,48 @@ namespace AlexAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
-
         [HttpGet]
         [Route("GetFeatured")]
-        public IActionResult GetFeatured(
-            int page = 0,
-            int numResults = 25
-        )
+        public IActionResult GetFeatured(int page = 0, int numResults = 25)
         {
             try
             {
-                string sql = @"
-                    SELECT y.*, s.*, m.*
-                    FROM Yachts y
-                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
-                    LEFT JOIN Media m ON y.MediaId = m.Id
-                    WHERE y.IsFeatured = 1
-                    ORDER BY y.Id
-                    OFFSET @Page * @NumResults ROWS
-                    FETCH NEXT @NumResults ROWS ONLY";
+                var yachtDict = new Dictionary<Guid, Yacht>();
 
-                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media>(
+                string sql = @"
+            SELECT y.*, s.*, m.*, i.*
+            FROM Yachts y
+            LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+            LEFT JOIN Media m ON y.MediaId = m.Id
+            LEFT JOIN Images i ON m.Id = i.MediaId
+            WHERE y.IsFeatured = 1
+            ORDER BY y.Id
+            OFFSET @Page * @NumResults ROWS
+            FETCH NEXT @NumResults ROWS ONLY";
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Image>(
                     sql,
-                    map: (yacht, s, m) =>
+                    (y, s, m, i) =>
                     {
-                        yacht.Specification = s;
-                        yacht.Media = m;
+                        if (!yachtDict.TryGetValue(y.Id, out var yacht))
+                        {
+                            yacht = y;
+                            yacht.Specification = s;
+                            yacht.Media = m ?? new Media(); // ensure not null
+                            yacht.Media.Images = new List<Image>();
+                            yachtDict[y.Id] = yacht;
+                        }
+
+                        if (i != null && i.Id != Guid.Empty)
+                        {
+                            var images = yachtDict[y.Id].Media.Images;
+                            if (images.Count < 4 && !images.Any(img => img.Id == i.Id))
+                                images.Add(i);
+                        }
+
                         return yacht;
                     },
-                    splitOn: "Id,Id",
+                    splitOn: "Id,Id,Id",
                     parameters: new
                     {
                         Page = page,
@@ -728,13 +741,15 @@ namespace AlexAPI.Controllers
                     }
                 );
 
-                return Ok(yachts);
+                return Ok(yachtDict.Values.ToList());
             }
             catch (Exception ex)
             {
-                return BadRequest(ex);
+                return BadRequest(ex.Message);
             }
         }
+
+
 
         [HttpGet]
         [Route("GetSalesYachts")]
