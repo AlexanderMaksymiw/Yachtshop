@@ -234,7 +234,7 @@ namespace AlexAPI.Controllers
 
                 if (!string.IsNullOrEmpty(subType))
                 {
-                    conditions.Add("EXISTS (SELECT 1 FROM SpecificationSubTypes sst JOIN SubTypes st ON sst.SubTypeId = st.Id WHERE sst.SpecificationId = s.Id AND st.Name = @SubType)");
+                    conditions.Add("EXISTS (SELECT 1 FROM SpecificationSubTypes sst JOIN SubTypes st ON sst.SubTypesId = st.Id WHERE sst.SpecificationsId = s.Id AND st.Name = @SubType)");
                     parameters.Add(new SqlParameter("@SubType", subType));
                 }
 
