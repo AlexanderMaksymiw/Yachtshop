@@ -694,22 +694,24 @@ namespace AlexAPI.Controllers
         }
         [HttpGet]
         [Route("GetFeatured")]
-        public IActionResult GetFeatured(int page = 0, int numResults = 25)
+        public IActionResult GetFeatured()
         {
             try
             {
                 var yachtDict = new Dictionary<Guid, Yacht>();
 
                 string sql = @"
-            SELECT y.*, s.*, m.*, i.*
+                SELECT 
+                y.*,
+                s.*,
+                m.*,
+                i.*
             FROM Yachts y
             LEFT JOIN Specifications s ON y.SpecificationId = s.Id
             LEFT JOIN Media m ON y.MediaId = m.Id
             LEFT JOIN Images i ON m.Id = i.MediaId
             WHERE y.IsFeatured = 1
-            ORDER BY y.Id
-            OFFSET @Page * @NumResults ROWS
-            FETCH NEXT @NumResults ROWS ONLY";
+            ORDER BY y.Id";
 
                 var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Image>(
                     sql,
@@ -719,7 +721,7 @@ namespace AlexAPI.Controllers
                         {
                             yacht = y;
                             yacht.Specification = s;
-                            yacht.Media = m ?? new Media(); // ensure not null
+                            yacht.Media = m ?? new Media();
                             yacht.Media.Images = new List<Image>();
                             yachtDict[y.Id] = yacht;
                         }
@@ -727,18 +729,13 @@ namespace AlexAPI.Controllers
                         if (i != null && i.Id != Guid.Empty)
                         {
                             var images = yachtDict[y.Id].Media.Images;
-                            if (images.Count < 4 && !images.Any(img => img.Id == i.Id))
+                            if (!images.Any(img => img.Id == i.Id))
                                 images.Add(i);
                         }
 
                         return yacht;
                     },
-                    splitOn: "Id,Id,Id",
-                    parameters: new
-                    {
-                        Page = page,
-                        NumResults = numResults
-                    }
+                    splitOn: "Id,Id,Id"
                 );
 
                 return Ok(yachtDict.Values.ToList());
