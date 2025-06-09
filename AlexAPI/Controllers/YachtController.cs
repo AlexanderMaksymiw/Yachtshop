@@ -139,10 +139,11 @@ namespace AlexAPI.Controllers
             string? destination = null,
             int page = 0,
             int numResults = 25,
+            int? minGuests = null,
+            int? maxGuests = null,
             int? minPrice = null,
             int? maxPrice = null,
             int? length = null,
-            int? guests = null,
             int? yearBuilt = null,
             int? cabins = null,
             int? maxSpeed = null,
@@ -196,10 +197,16 @@ namespace AlexAPI.Controllers
                     parameters.Add(new SqlParameter("@Length", length.Value));
                 }
 
-                if (guests.HasValue)
+                if (minGuests.HasValue)
                 {
-                    conditions.Add("s.Guests >= @Guests");
-                    parameters.Add(new SqlParameter("@Guests", guests.Value));
+                    conditions.Add("s.Guests >= @MinGuests");
+                    parameters.Add(new SqlParameter("@MinGuests", minGuests.Value));
+                }
+
+                if (maxGuests.HasValue)
+                {
+                    conditions.Add("s.Guests <= @MaxGuests");
+                    parameters.Add(new SqlParameter("@MaxGuests", maxGuests.Value));
                 }
 
                 if (yearBuilt.HasValue)
