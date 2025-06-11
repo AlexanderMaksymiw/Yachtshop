@@ -45,7 +45,7 @@ namespace AlexAPI.Controllers
                     LEFT JOIN KeyFeatures kf ON y.Id = kf.YachtId
                     WHERE y.Id = @Id";
 
-                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Image, Amenity, Location, KeyFeature>(
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, AlexAPI.Models.Image, Amenity, Location, KeyFeature>(
                     sql,
                     (y, s, m, i, a, l, kf) =>
                     {
@@ -55,7 +55,7 @@ namespace AlexAPI.Controllers
                             yacht.Specification = s;
                             yacht.Media = m;
                             yacht.Amenities = a;
-                            yacht.Media.Images = new List<Image>();
+                            yacht.Media.Images = new List<AlexAPI.Models.Image>();
                             yacht.Locations = new List<Location>();
                             yacht.KeyFeatures = new List<KeyFeature>();
                             yachtDict[yacht.Id] = yacht;
@@ -366,7 +366,7 @@ namespace AlexAPI.Controllers
                     LEFT JOIN Images i ON m.Id = i.MediaId AND i.[Type] = 0
                     WHERE y.Id = @Id";
 
-                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Image>(
+                var result = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, AlexAPI.Models.Image>(
                     sql,
                     (y, s, m, i) =>
                     {
@@ -375,7 +375,7 @@ namespace AlexAPI.Controllers
                             yacht = y;
                             yacht.Specification = s;
                             yacht.Media = m;
-                            yacht.Media.Images = new List<Image>();
+                            yacht.Media.Images = new List<AlexAPI.Models.Image>();
                             yachtDict[yacht.Id] = yacht;
                         }
 
@@ -720,7 +720,7 @@ namespace AlexAPI.Controllers
             WHERE y.IsFeatured = 1
             ORDER BY y.Id";
 
-                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, Image>(
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Media, AlexAPI.Models.Image>(
                     sql,
                     (y, s, m, i) =>
                     {
@@ -729,7 +729,7 @@ namespace AlexAPI.Controllers
                             yacht = y;
                             yacht.Specification = s;
                             yacht.Media = m ?? new Media();
-                            yacht.Media.Images = new List<Image>();
+                            yacht.Media.Images = new List<AlexAPI.Models.Image>();
                             yachtDict[y.Id] = yacht;
                         }
 
@@ -1551,7 +1551,7 @@ namespace AlexAPI.Controllers
                 }
                 else
                 {
-                    yacht.Media.Images.Add(new Image
+                    yacht.Media.Images.Add(new AlexAPI.Models.Image
                     {
                         Filename = "Hero Image",
                         Type = 0,
@@ -1576,11 +1576,11 @@ namespace AlexAPI.Controllers
                 var yacht = workUnit.YachtRepository.GetByID(yachtId);
                 if (!yacht.Media.Images.Any())
                 {
-                    yacht.Media.Images = new List<Image>();
+                    yacht.Media.Images = new List<AlexAPI.Models.Image>();
                 }
                 foreach (var item in imageDtos)
                 {
-                    yacht.Media.Images.Add(new Image
+                    yacht.Media.Images.Add(new AlexAPI.Models.Image
                     {
                         Filename = $"{item.Filename}{Path.GetExtension(item.Image.FileName)}",
                         PhotographerName = item.PhotographerName,
