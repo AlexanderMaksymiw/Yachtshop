@@ -273,7 +273,7 @@ namespace AlexAPI.Controllers
 
                 string sql = $@"
                     SELECT 
-                        y.*, s.*
+                        y.*, s.*, a.*
                     FROM Yachts y
                     LEFT JOIN Specifications s ON y.SpecificationId = s.Id
                     LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
@@ -294,14 +294,15 @@ namespace AlexAPI.Controllers
                     sqlParams.Add(param.ParameterName, param.Value);
                 }
 
-                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Amenity>(
                     sql,
-                    map: (yacht, spec) =>
+                    map: (yacht, spec, amenity) =>
                     {
                         yacht.Specification = spec;
+                        yacht.Amenities = amenity;
                         return yacht;
                     },
-                    splitOn: "Id",
+                    splitOn: "Id,Id",
                     parameters: sqlParams
                 );
                 return Ok(yachts);
@@ -320,26 +321,28 @@ namespace AlexAPI.Controllers
             {
                 string sql = @"
                     SELECT 
-                        y.*, s.*
+                        y.*, s.*,a.*
                     FROM Yachts y
                     LEFT JOIN Specifications s ON y.SpecificationId = s.Id
+                    LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
                     ORDER BY y.Id
                     OFFSET @Page ROWS
                     FETCH NEXT @NumResults ROWS ONLY";
 
-                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
+                var sqlParams = new DynamicParameters();
+                sqlParams.Add("@Page", page * numResults);
+                sqlParams.Add("@NumResults", numResults);
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Amenity>(
                     sql,
-                    map: (yacht, spec) =>
+                    map: (yacht, spec, Amenity) =>
                     {
                         yacht.Specification = spec;
+                        yacht.Amenities = Amenity;
                         return yacht;
                     },
-                    splitOn: "Id", // split on Specification.Id
-                    parameters: new
-                    {
-                        Page = page,
-                        NumResults = numResults
-                    }
+                    splitOn: "Id,Id", // split on Specification.Id
+                    parameters: sqlParams
                 );
 
                 return Ok(yachts);
@@ -1412,52 +1415,6 @@ namespace AlexAPI.Controllers
                 );
 
                 return Ok(yachtDict.Values);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex);
-            }
-        }
-
-        [HttpGet]
-        [Route("GetScubaYachts")]
-        public IActionResult GetScubaYachts(
-            int page = 0,
-            int numResults = 25
-        )
-        {
-            try
-            {
-                string sql = @"
-                    SELECT DISTINCT y.*, s.*
-                    FROM Yachts y
-                    LEFT JOIN Specifications s ON y.SpecificationId = s.Id
-                    LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
-                    LEFT JOIN AmenityEquipment ae ON a.Id = ae.AmenityId
-                    LEFT JOIN Equipment e ON ae.EquipmentId = e.Id
-                    LEFT JOIN AmenityToys at ON a.Id = at.AmenityId
-                    LEFT JOIN Toys t ON at.ToyId = t.Id
-                    WHERE e.Name LIKE '%scuba%' OR t.Name LIKE '%scuba%'
-                    ORDER BY y.Id
-                    OFFSET @Page * @NumResults ROWS
-                    FETCH NEXT @NumResults ROWS ONLY";
-
-                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification>(
-                    sql,
-                    map: (yacht, spec) =>
-                    {
-                        yacht.Specification = spec;
-                        return yacht;
-                    },
-                    splitOn: "Id",
-                    parameters: new
-                    {
-                        Page = page,
-                        NumResults = numResults
-                    }
-                );
-
-                return Ok(yachts);
             }
             catch (Exception ex)
             {
