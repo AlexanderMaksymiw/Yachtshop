@@ -11,5 +11,6 @@ namespace AlexAPI.Models
         public string? PhotographerName { get; set; }
         public ImageTypeEnum Type { get; set; }
         public string Url { get; set; }
+        public byte[]? WebpData { get; set; }
     }
 }
