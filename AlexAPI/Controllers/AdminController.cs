@@ -43,7 +43,9 @@ namespace AlexAPI.Controllers
         [HttpPost("DownloadAndConvertAllImages")]
         public async Task<IActionResult> DownloadAndConvertAllImages()
         {
-            var images = await _dbContext.Images
+            const int batchSize = 50;
+
+            var totalImages = await _dbContext.Images
                 .Where(i => i.WebpData == null && i.Url != null)
                 .ToListAsync();
 
@@ -51,50 +53,58 @@ namespace AlexAPI.Controllers
             int convertedCount = 0;
             var failedImages = new List<Guid>();
 
-            foreach (var image in images)
+            Console.WriteLine($"🔍 Found {totalImages.Count} images to process in batches of {batchSize}");
+
+            for (int i = 0; i < totalImages.Count; i += batchSize)
             {
-                try
+                var batch = totalImages.Skip(i).Take(batchSize).ToList();
+
+                foreach (var image in batch)
                 {
-                    var response = await client.GetAsync(image.Url);
-                    if (!response.IsSuccessStatusCode)
+                    try
                     {
-                        failedImages.Add(image.Id);
-                        continue;
+                        Console.WriteLine($"⬇️ Downloading image: {image.Id}");
+
+                        var response = await client.GetAsync(image.Url);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"❌ Failed to download image: {image.Id} - Status: {response.StatusCode}");
+                            failedImages.Add(image.Id);
+                            continue;
+                        }
+
+                        using var originalStream = await response.Content.ReadAsStreamAsync();
+                        using var imageSharpImage = await SixLabors.ImageSharp.Image.LoadAsync(originalStream);
+                        using var webpStream = new MemoryStream();
+
+                        await imageSharpImage.SaveAsWebpAsync(webpStream, new SixLabors.ImageSharp.Formats.Webp.WebpEncoder
+                        {
+                            Quality = 80
+                        });
+
+                        image.WebpData = webpStream.ToArray();
+                        image.Url = null;
+                        image.Filename = $"{image.Id}.webp";
+
+                        Console.WriteLine($"✅ Converted image: {image.Id}");
+                        convertedCount++;
                     }
-
-                    using var originalStream = await response.Content.ReadAsStreamAsync();
-                    using var imageSharpImage = await SixLabors.ImageSharp.Image.LoadAsync(originalStream);
-                    using var webpStream = new MemoryStream();
-
-                    await imageSharpImage.SaveAsWebpAsync(webpStream, new SixLabors.ImageSharp.Formats.Webp.WebpEncoder
+                    catch (Exception ex)
                     {
-                        Quality = 80
-                    });
-
-                    image.WebpData = webpStream.ToArray();
-
-                    // 👇 Kill the external link
-                    image.Url = null;
-
-                    // 👇 Optional: rename it to match your internal logic
-                    image.Filename = $"{image.Id}.webp";
-
-                    convertedCount++;
+                        Console.WriteLine($"💥 Error converting image {image.Id}: {ex.Message}");
+                        failedImages.Add(image.Id);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error with image {image.Id}: {ex.Message}");
-                    failedImages.Add(image.Id);
-                }
+
+                await _dbContext.SaveChangesAsync();
+                Console.WriteLine($"💾 Saved batch {i / batchSize + 1}");
             }
 
-            await _dbContext.SaveChangesAsync();
             return Ok(new
             {
                 Message = $"{convertedCount} images converted and stored.",
                 Failed = failedImages
             });
         }
-
     }
 }
