@@ -73,6 +73,9 @@ namespace AlexAPI
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
             });
 
+            services.AddHttpClient();
+
+
             services.AddSignalR();
 
             services.AddAuthentication(options =>
