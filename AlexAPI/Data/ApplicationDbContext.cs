@@ -24,7 +24,7 @@ namespace AlexAPI.Data
         public DbSet<Media> Media { get; set; }
         public DbSet<PreviousName> PreviousNames { get; set; }
         public DbSet<Toy> Toys { get; set; }
-        public DbSet<Image> Images { get; set; }
+        public DbSet<AlexAPI.Models.Image> Images { get; set; }
         public DbSet<Video> Videos { get; set; }
         public DbSet<Location> Locations { get; set; }
         public DbSet<SubType> SubTypes { get; set; }
@@ -43,7 +43,7 @@ namespace AlexAPI.Data
             modelBuilder.Entity<Media>().ToTable("Media");
             modelBuilder.Entity<PreviousName>().ToTable("PreviousNames");
             modelBuilder.Entity<Toy>().ToTable("Toys");
-            modelBuilder.Entity<Image>().ToTable("Images");
+            modelBuilder.Entity<AlexAPI.Models.Image>().ToTable("Images");
             modelBuilder.Entity<Video>().ToTable("Videos");
             modelBuilder.Entity<Location>().ToTable("Locations");
             modelBuilder.Entity<SubType>().ToTable("SubTypes");
