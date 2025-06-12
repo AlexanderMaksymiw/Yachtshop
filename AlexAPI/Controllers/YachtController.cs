@@ -25,6 +25,37 @@ namespace AlexAPI.Controllers
             this.ftpService = ftpService;
         }
 
+        private AmenityDto MapToAmenityDto(Amenity amenity)
+        {
+            var toyNames = amenity.Toys?.Select(t => t.Name).ToList() ?? new List<string>();
+            var equipmentNames = amenity.Equipment?.Select(e => e.Name).ToList() ?? new List<string>();
+
+            return new AmenityDto
+            {
+                Id = amenity.Id,
+
+                // Popular Equipment
+                AirConditioning = equipmentNames.Any(e => e.Contains("air", StringComparison.OrdinalIgnoreCase)),
+                WiFi = equipmentNames.Any(e => e.Contains("wifi", StringComparison.OrdinalIgnoreCase)),
+                Stabilizers = equipmentNames.Any(e => e.Contains("stabilizer", StringComparison.OrdinalIgnoreCase)),
+                Sunpads = equipmentNames.Any(e => e.Contains("sunpad", StringComparison.OrdinalIgnoreCase)),
+                Jacuzzi = equipmentNames.Any(e => e.Contains("jacuzzi", StringComparison.OrdinalIgnoreCase)),
+                Gym = equipmentNames.Any(e => e.Contains("gym", StringComparison.OrdinalIgnoreCase)),
+
+                // Popular Toys
+                SnorkellingEquipment = toyNames.Any(t => t.Contains("snorkel", StringComparison.OrdinalIgnoreCase)),
+                FishingEquipment = toyNames.Any(t => t.Contains("fishing", StringComparison.OrdinalIgnoreCase)),
+                WaterSki = toyNames.Any(t => t.Contains("water ski", StringComparison.OrdinalIgnoreCase)),
+                ScubaDivingEquipment = toyNames.Any(t => t.Contains("scuba", StringComparison.OrdinalIgnoreCase)),
+                Seabob = toyNames.Any(t => t.Contains("seabob", StringComparison.OrdinalIgnoreCase)),
+                WakeBoard = toyNames.Any(t => t.Contains("wake", StringComparison.OrdinalIgnoreCase)),
+
+                ToyNames = toyNames,
+                EquipmentNames = equipmentNames
+            };
+        }
+
+
         [HttpGet]
         [Route("GetById")]
         public IActionResult GetById(Guid id)
@@ -305,7 +336,16 @@ namespace AlexAPI.Controllers
                     splitOn: "Id,Id",
                     parameters: sqlParams
                 );
-                return Ok(yachts);
+                // Map entity yachts to DTOs
+                var yachtDtos = yachts.Select(y => new YachtDto
+                {
+                    Id = y.Id,
+                    Name = y.Name,
+                    Amenities = y.Amenities != null ? MapToAmenityDto(y.Amenities) : null
+                }).ToList();
+
+                return Ok(yachtDtos);
+
             }
             catch (Exception ex)
             {

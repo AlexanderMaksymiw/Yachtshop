@@ -10,5 +10,6 @@
         public decimal? Price { get; set; }
         public string? HeroImageUrl { get; set; }
         public bool OnSale { get; set; }
+        public AmenityDto Amenities { get; set; }
     }
 }
