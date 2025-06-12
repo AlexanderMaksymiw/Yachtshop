@@ -345,7 +345,7 @@ namespace AlexAPI.Controllers
                     FROM Yachts y
                     LEFT JOIN Specifications s ON y.SpecificationId = s.Id
                     LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
-                    LEFT JOIN AmenityToys at ON a.Id = at.AmenityId
+                    LEFT JOIN AmenityToy at ON a.Id = at.AmenityId
                     LEFT JOIN Toys t ON at.ToyId = t.Id
                     LEFT JOIN AmenityEquipment ae ON a.Id = ae.AmenityId
                     LEFT JOIN Equipment e ON ae.EquipmentId = e.Id
