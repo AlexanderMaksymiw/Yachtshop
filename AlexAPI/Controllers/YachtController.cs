@@ -28,31 +28,12 @@ namespace AlexAPI.Controllers
 
         private AmenityDto MapToAmenityDto(Amenity amenity)
         {
-            var toyNames = amenity.Toys?.Select(t => t.Name).ToList() ?? new List<string>();
-            var equipmentNames = amenity.Equipment?.Select(e => e.Name).ToList() ?? new List<string>();
-
             return new AmenityDto
             {
                 Id = amenity.Id,
 
-                // Popular Equipment
-                AirConditioning = equipmentNames.Any(e => e.Contains("air", StringComparison.OrdinalIgnoreCase)),
-                WiFi = equipmentNames.Any(e => e.Contains("wifi", StringComparison.OrdinalIgnoreCase)),
-                Stabilizers = equipmentNames.Any(e => e.Contains("stabilizer", StringComparison.OrdinalIgnoreCase)),
-                Sunpads = equipmentNames.Any(e => e.Contains("sunpad", StringComparison.OrdinalIgnoreCase)),
-                Jacuzzi = equipmentNames.Any(e => e.Contains("jacuzzi", StringComparison.OrdinalIgnoreCase)),
-                Gym = equipmentNames.Any(e => e.Contains("gym", StringComparison.OrdinalIgnoreCase)),
-
-                // Popular Toys
-                SnorkellingEquipment = toyNames.Any(t => t.Contains("snorkel", StringComparison.OrdinalIgnoreCase)),
-                FishingEquipment = toyNames.Any(t => t.Contains("fishing", StringComparison.OrdinalIgnoreCase)),
-                WaterSki = toyNames.Any(t => t.Contains("water ski", StringComparison.OrdinalIgnoreCase)),
-                ScubaDivingEquipment = toyNames.Any(t => t.Contains("scuba", StringComparison.OrdinalIgnoreCase)),
-                Seabob = toyNames.Any(t => t.Contains("seabob", StringComparison.OrdinalIgnoreCase)),
-                WakeBoard = toyNames.Any(t => t.Contains("wake", StringComparison.OrdinalIgnoreCase)),
-
-                ToyNames = toyNames,
-                EquipmentNames = equipmentNames
+                ToyNames = amenity.Toys?.Select(t => t.Name).Distinct().ToList() ?? new List<string>(),
+                EquipmentNames = amenity.Equipment?.Select(e => e.Name).Distinct().ToList() ?? new List<string>()
             };
         }
 
@@ -366,19 +347,49 @@ namespace AlexAPI.Controllers
                     sqlParams.Add(param.ParameterName, param.Value);
                 }
 
-                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Amenity>(
+                var yachtDict = new Dictionary<Guid, Yacht>();
+
+                var yachts = workUnit.YachtRepository.ExecuteMultiMapQuery<Yacht, Specification, Amenity, Toy, Equipment>(
                     sql,
-                    map: (yacht, spec, amenity) =>
+                    map: (yacht, spec, amenity, toy, equipment) =>
                     {
-                        yacht.Specification = spec;
-                        yacht.Amenities = amenity;
-                        return yacht;
+                        if (!yachtDict.TryGetValue(yacht.Id, out var yachtEntry))
+                        {
+                            yachtEntry = yacht;
+                            yachtEntry.Specification = spec;
+
+                            if (amenity == null)
+                                amenity = new Amenity();
+
+                            if (amenity.Toys == null)
+                                amenity.Toys = new List<Toy>();
+                            if (amenity.Equipment == null)
+                                amenity.Equipment = new List<Equipment>();
+
+                            yachtEntry.Amenities = amenity;
+
+                            yachtDict.Add(yachtEntry.Id, yachtEntry);
+                        }
+
+                        if (toy != null && !yachtEntry.Amenities.Toys.Any(t => t.Id == toy.Id))
+                        {
+                            yachtEntry.Amenities.Toys.Add(toy);
+                        }
+
+                        if (equipment != null && !yachtEntry.Amenities.Equipment.Any(e => e.Id == equipment.Id))
+                        {
+                            yachtEntry.Amenities.Equipment.Add(equipment);
+                        }
+
+                       return yachtEntry;
                     },
+
                     splitOn: "Id,Id,Id,Id",
                     parameters: sqlParams
                 );
                 // Map entity yachts to DTOs
-                var yachtDtos = yachts.Select(y => new YachtDto
+                var resultYachts = yachtDict.Values.ToList();
+                var yachtDtos = resultYachts.Select(y => new YachtDto
                 {
                     Id = y.Id,
                     Name = y.Name,
@@ -389,7 +400,11 @@ namespace AlexAPI.Controllers
                     IsFeatured = y.IsFeatured,
                     HeroImageUrl = y.HeroImageUrl,
                     Specification = y.Specification != null ? MapToSpecDto(y.Specification) : null,
-                    Amenities = y.Amenities != null ? MapToAmenityDto(y.Amenities) : null
+                    Amenities = y.Amenities != null ? MapToAmenityDto(y.Amenities) : new AmenityDto
+                    {
+                        ToyNames = new List<string>(),
+                        EquipmentNames = new List<string>()
+                    }
                 }).ToList();
 
                 return Ok(yachtDtos);
