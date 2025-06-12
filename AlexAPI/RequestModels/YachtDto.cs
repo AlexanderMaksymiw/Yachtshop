@@ -4,12 +4,16 @@
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
+        public string Description { get; set; }
+        public string SYTUrl { get; set; }
+        public bool IsFeatured { get; set; }
         public string? Type { get; set; }
         public decimal? Length { get; set; }
         public int? Guests { get; set; }
         public decimal? Price { get; set; }
         public string? HeroImageUrl { get; set; }
         public bool OnSale { get; set; }
+        public SpecificationDto Specification { get; set; }
         public AmenityDto Amenities { get; set; }
     }
 }

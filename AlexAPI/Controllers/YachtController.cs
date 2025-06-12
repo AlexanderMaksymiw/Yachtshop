@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using AlexAPI.Services.Interfaces;
 using Microsoft.Data.SqlClient;
 using Dapper;
+using System.Drawing.Text;
 
 namespace AlexAPI.Controllers
 {
@@ -55,8 +56,40 @@ namespace AlexAPI.Controllers
             };
         }
 
+        private SpecificationDto MapToSpecDto(Specification spec)
+        {
+            return new SpecificationDto
+            {
+                Id = spec.Id,
+                Type = spec.Type,
+                HullType = spec.HullType,
+                YearBuilt = spec.YearBuilt,
+                Builder = spec.Builder,
+                Length = spec.Length,
+                Guests = spec.Guests,
+                Cabins = spec.Cabins,
+                Flag = spec.Flag,
+                Port = spec.Port,
+                Superstructure = spec.Superstructure,
+                InteriorDesigner = spec.InteriorDesigner,
+                ExteriorDesigner = spec.ExteriorDesigner,
+                Crew = spec.Crew,
+                Beam = spec.Beam,
+                Draft = spec.Draft,
+                GrossTonnage = spec.GrossTonnage,
+                MaxSpeed = spec.MaxSpeed,
+                CruisingSpeed = spec.CruisingSpeed,
+                EnginePowerOutput = spec.EnginePowerOutput,
+                Model = spec.Model,
+                PropulsionType = spec.PropulsionType,
+                FuelCapacity = spec.FuelCapacity,
+                Class = spec.Class
+            };
+        }
 
-        [HttpGet]
+
+
+[HttpGet]
         [Route("GetById")]
         public IActionResult GetById(Guid id)
         {
@@ -341,6 +374,13 @@ namespace AlexAPI.Controllers
                 {
                     Id = y.Id,
                     Name = y.Name,
+                    Description = y.Description,
+                    SYTUrl = y.SYTUrl,
+                    Price = y.Price,
+                    OnSale = y.OnSale,
+                    IsFeatured = y.IsFeatured,
+                    HeroImageUrl = y.HeroImageUrl,
+                    Specification = y.Specification != null ? MapToSpecDto(y.Specification) : null,
                     Amenities = y.Amenities != null ? MapToAmenityDto(y.Amenities) : null
                 }).ToList();
 
