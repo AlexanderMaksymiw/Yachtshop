@@ -104,6 +104,10 @@ namespace AlexAPI.Controllers
                     LEFT JOIN Media m ON y.MediaId = m.Id
                     LEFT JOIN Images i ON m.Id = i.MediaId
                     LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
+                    LEFT JOIN AmenityToys at ON a.Id = at.AmenityId
+                    LEFT JOIN Toys t ON at.ToyId = t.Id
+                    LEFT JOIN AmenityEquipment ae ON a.Id = AmenityId
+                    LEFT JOIN Equipment e ON ae.EquipmentId = e.Id
                     LEFT JOIN LocationYacht ly ON y.Id = ly.YachtsId
                     LEFT JOIN Locations l ON ly.LocationsId = l.Id
                     LEFT JOIN KeyFeatures kf ON y.Id = kf.YachtId
@@ -337,10 +341,14 @@ namespace AlexAPI.Controllers
 
                 string sql = $@"
                     SELECT 
-                        y.*, s.*, a.*
+                        y.*, s.*, a.*, t.*, e.*
                     FROM Yachts y
                     LEFT JOIN Specifications s ON y.SpecificationId = s.Id
                     LEFT JOIN Amenities a ON y.AmenitiesId = a.Id
+                    LEFT JOIN AmenityToys at ON a.Id = at.AmenityId
+                    LEFT JOIN Toys t ON at.ToyId = t.Id
+                    LEFT JOIN AmenityEquipment ae ON a.Id = ae.AmenityId
+                    LEFT JOIN Equipment e ON ae.EquipmentId = e.Id
                     {whereClause}
                     ORDER BY y.Id
                     OFFSET @Page * @NumResults ROWS
@@ -366,7 +374,7 @@ namespace AlexAPI.Controllers
                         yacht.Amenities = amenity;
                         return yacht;
                     },
-                    splitOn: "Id,Id",
+                    splitOn: "Id,Id,Id,Id",
                     parameters: sqlParams
                 );
                 // Map entity yachts to DTOs
