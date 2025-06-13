@@ -28,6 +28,7 @@ namespace AlexAPI.Controllers
         public YachtController(ILogger<YachtController> logger, ApplicationDbContext dbContext, YachtWorkUnit workUnit, IFTPService ftpService)
         {
             this.logger = logger;
+            this._dbContext = dbContext;
             this.workUnit = workUnit;
             this.ftpService = ftpService;
         }
