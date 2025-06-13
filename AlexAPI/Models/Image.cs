@@ -12,5 +12,6 @@ namespace AlexAPI.Models
         public ImageTypeEnum Type { get; set; }
         public string? Url { get; set; }
         public byte[]? WebpData { get; set; }
+        public Guid MediaId { get; set; }
     }
 }

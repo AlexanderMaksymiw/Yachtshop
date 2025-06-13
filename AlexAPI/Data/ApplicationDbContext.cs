@@ -33,6 +33,9 @@ namespace AlexAPI.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // IMPORTANT: Call base.OnModelCreating first for IdentityDbContext!
+            base.OnModelCreating(modelBuilder); // <--- Make sure this line is here and ideally at the top of the method.
+
             // Link DB Table to Model
             modelBuilder.Entity<Yacht>().ToTable("Yachts");
             modelBuilder.Entity<Specification>().ToTable("Specifications");
@@ -84,7 +87,55 @@ namespace AlexAPI.Data
             modelBuilder.Entity<Location>()
                 .HasIndex(l => l.Name);
 
-            base.OnModelCreating(modelBuilder);
+
+            // --- ADD THESE LINES TO ADDRESS DECIMAL WARNINGS ---
+
+            // For CharterDeal
+            modelBuilder.Entity<CharterDeal>()
+                .Property(cd => cd.Price)
+                .HasPrecision(18, 2); // Common for currency, adjust as needed
+
+            // For Location
+            modelBuilder.Entity<Location>()
+                .Property(l => l.Latitude)
+                .HasPrecision(9, 6); // Standard for latitude/longitude (e.g., 123.456789)
+
+            modelBuilder.Entity<Location>()
+                .Property(l => l.Longitude)
+                .HasPrecision(9, 6); // Standard for latitude/longitude
+
+            // For Specification
+            modelBuilder.Entity<Specification>()
+                .Property(s => s.Beam)
+                .HasPrecision(8, 2); // Adjust precision/scale as per your data needs
+
+            modelBuilder.Entity<Specification>()
+                .Property(s => s.CruisingSpeed)
+                .HasPrecision(8, 2); // Adjust
+
+            modelBuilder.Entity<Specification>()
+                .Property(s => s.Draft)
+                .HasPrecision(8, 2); // Adjust
+
+            modelBuilder.Entity<Specification>()
+                .Property(s => s.Length)
+                .HasPrecision(8, 2); // Adjust
+
+            modelBuilder.Entity<Specification>()
+                .Property(s => s.MaxSpeed)
+                .HasPrecision(8, 2); // Adjust
+
+            // For Yacht
+            modelBuilder.Entity<Yacht>()
+                .Property(y => y.Price)
+                .HasPrecision(18, 2); // Common for currency, adjust as needed
+
+            // --- END OF NEW LINES ---
+
+            // IMPORTANT: Make sure base.OnModelCreating(modelBuilder); is called somewhere, ideally at the start or end
+            // of the OnModelCreating method to ensure Identity-related configurations are applied.
+            // I've moved it to the top in this snippet. If it was at the bottom, ensure it remains there or move it to top.
+            // Generally, calling base.OnModelCreating first is safer.
         }
     }
 }

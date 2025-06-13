@@ -2,12 +2,15 @@
 using AlexAPI.Data.DAL.WorkUnits;
 using AlexAPI.Library.Locations;
 using AlexAPI.Models;
+using AlexAPI.Data;
 using AlexAPI.RequestModels;
 using Microsoft.AspNetCore.Mvc;
 using AlexAPI.Services.Interfaces;
 using Microsoft.Data.SqlClient;
 using Dapper;
 using System.Drawing.Text;
+using AlexAPI.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace AlexAPI.Controllers
 {
@@ -18,8 +21,11 @@ namespace AlexAPI.Controllers
         private readonly ILogger<YachtController> logger;
         private readonly YachtWorkUnit workUnit;
         private readonly IFTPService ftpService;
+        private readonly ApplicationDbContext _dbContext;
+        
 
-        public YachtController(ILogger<YachtController> logger, YachtWorkUnit workUnit, IFTPService ftpService)
+
+        public YachtController(ILogger<YachtController> logger, ApplicationDbContext dbContext, YachtWorkUnit workUnit, IFTPService ftpService)
         {
             this.logger = logger;
             this.workUnit = workUnit;
@@ -70,7 +76,7 @@ namespace AlexAPI.Controllers
 
 
 
-[HttpGet]
+        [HttpGet]
         [Route("GetById")]
         public IActionResult GetById(Guid id)
         {
@@ -381,7 +387,7 @@ namespace AlexAPI.Controllers
                             yachtEntry.Amenities.Equipment.Add(equipment);
                         }
 
-                       return yachtEntry;
+                        return yachtEntry;
                     },
 
                     splitOn: "Id,Id,Id,Id",
@@ -519,7 +525,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                
+
                 return BadRequest(ex);
             }
         }
@@ -543,7 +549,7 @@ namespace AlexAPI.Controllers
             }
             catch (Exception ex)
             {
-                
+
                 return BadRequest(ex);
             }
         }
@@ -879,7 +885,8 @@ namespace AlexAPI.Controllers
                     FETCH NEXT @NumResults ROWS ONLY
                 ";
 
-                return Ok(workUnit.YachtRepository.ExecuteSqlQuery<Yacht>(sql, new {
+                return Ok(workUnit.YachtRepository.ExecuteSqlQuery<Yacht>(sql, new
+                {
                     Page = page,
                     NumResults = numResults
                 }));
@@ -1657,5 +1664,69 @@ namespace AlexAPI.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+
+
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpPost("UploadAllWebpImagesUsingFtpService")]
+        public async Task<IActionResult> UploadAllWebpImagesUsingFtpService()
+        {
+            var images = await _dbContext.Images
+            .Where(i => i.WebpData != null)
+                .ToListAsync();
+
+            var yachts = _dbContext.Yachts
+                .Include(y => y.Media)
+                .ThenInclude(m => m.Images)
+                .ToDictionary(y => y.Id);
+
+            int uploadedCount = 0;
+
+            foreach (var image in images)
+            {
+                try
+                {
+                    if (!yachts.ContainsKey(image.MediaId))
+                        continue;
+
+                    var yacht = yachts[image.MediaId];
+
+                    // Generate a MemoryStream for IFormFile
+                    var stream = new MemoryStream(image.WebpData);
+                    var formFile = new FormFile(stream, 0, stream.Length, image.Id.ToString(), image.Filename)
+                    {
+                        Headers = new HeaderDictionary(),
+                        ContentType = "image/webp"
+                    };
+
+                    // Upload using your existing ftpService
+                    var uploadedUrl = await ftpService.UploadFile(formFile, $"Yacht/{yacht.Id}", Path.GetFileNameWithoutExtension(image.Filename));
+
+                    // Add image to yacht media
+                    yacht.Media.Images ??= new List<AlexAPI.Models.Image>();
+                    yacht.Media.Images.Add(new AlexAPI.Models.Image
+                    {
+                        Filename = image.Filename,
+                        PhotographerName = image.PhotographerName,
+                        Type = image.Type,
+                        Url = uploadedUrl
+                    });
+
+                    uploadedCount++;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"💥 Failed for image {image.Id}: {ex.Message}");
+                }
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Message = $"{uploadedCount} WebP images uploaded via FTP and added to yachts."
+            });
+        }
     }
 }
+
