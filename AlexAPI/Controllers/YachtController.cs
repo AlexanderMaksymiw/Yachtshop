@@ -1700,7 +1700,7 @@ namespace AlexAPI.Controllers
                     };
 
                     // Upload using your existing ftpService
-                    var uploadedUrl = await ftpService.UploadFile(formFile, $"Yacht/{yacht.Id}", Path.GetFileNameWithoutExtension(image.Filename));
+                    var uploadedUrl = await ftpService.UploadFile(formFile, $"Images/Yacht/{yacht.Id}", Path.GetFileNameWithoutExtension(image.Filename));
 
                     // Add image to yacht media
                     yacht.Media.Images ??= new List<AlexAPI.Models.Image>();
