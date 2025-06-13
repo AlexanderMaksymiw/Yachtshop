@@ -22,7 +22,7 @@ namespace AlexAPI.Controllers
         private readonly YachtWorkUnit workUnit;
         private readonly IFTPService ftpService;
         private readonly ApplicationDbContext _dbContext;
-        
+
 
 
         public YachtController(ILogger<YachtController> logger, ApplicationDbContext dbContext, YachtWorkUnit workUnit, IFTPService ftpService)
@@ -1667,14 +1667,17 @@ namespace AlexAPI.Controllers
         }
 
 
-
-        [Roles(UserRoles.Admin, UserRoles.Broker)]
+      
         [HttpPost("UploadAllWebpImagesUsingFtpService")]
         public async Task<IActionResult> UploadAllWebpImagesUsingFtpService()
         {
+            logger.LogInformation("🚀 Starting UploadAllWebpImagesUsingFtpService");
+
             var images = await _dbContext.Images
-            .Where(i => i.WebpData != null)
+                .Where(i => i.WebpData != null)
                 .ToListAsync();
+
+            logger.LogInformation($"🖼️ Loaded {images.Count} images with WebP data");
 
             var yachtsByMediaId = _dbContext.Yachts
                 .Include(y => y.Media)
@@ -1682,27 +1685,37 @@ namespace AlexAPI.Controllers
                 .Where(y => y.Media != null)
                 .ToDictionary(y => y.Media.Id);
 
+            logger.LogInformation($"🛥️ Loaded {yachtsByMediaId.Count} yachts with valid Media references");
+
             int uploadedCount = 0;
+            int skippedCount = 0;
+            int failedCount = 0;
 
             foreach (var image in images)
             {
                 try
                 {
                     if (!yachtsByMediaId.ContainsKey(image.MediaId))
+                    {
+                        skippedCount++;
+                        logger.LogWarning($"⏭️ Skipping image {image.Id} — no yacht found with MediaId {image.MediaId}");
                         continue;
+                    }
 
                     var yacht = yachtsByMediaId[image.MediaId];
 
                     // Generate a MemoryStream for IFormFile
-                    var stream = new MemoryStream(image.WebpData);
+                    using var stream = new MemoryStream(image.WebpData);
                     var formFile = new FormFile(stream, 0, stream.Length, image.Id.ToString(), image.Filename)
                     {
                         Headers = new HeaderDictionary(),
                         ContentType = "image/webp"
                     };
 
-                    // Upload using your existing ftpService
+                    // Upload via FTP
                     var uploadedUrl = await ftpService.UploadFile(formFile, $"Images/Yacht/{yacht.Id}", Path.GetFileNameWithoutExtension(image.Filename));
+
+                    logger.LogInformation($"✅ Uploaded image {image.Id} to yacht {yacht.Id}, URL: {uploadedUrl}");
 
                     // Add image to yacht media
                     yacht.Media.Images ??= new List<AlexAPI.Models.Image>();
@@ -1718,17 +1731,22 @@ namespace AlexAPI.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"💥 Failed for image {image.Id}: {ex.Message}");
+                    failedCount++;
+                    logger.LogError(ex, $"💥 Failed to upload image {image.Id}: {ex.Message}");
                 }
             }
 
             await _dbContext.SaveChangesAsync();
 
+            logger.LogInformation($"🏁 Done. Uploaded: {uploadedCount}, Skipped: {skippedCount}, Failed: {failedCount}");
+
             return Ok(new
             {
-                Message = $"{uploadedCount} WebP images uploaded via FTP and added to yachts."
+                Message = $"{uploadedCount} WebP images uploaded via FTP and added to yachts.",
+                Skipped = skippedCount,
+                Failed = failedCount,
+                TotalLoaded = images.Count
             });
         }
     }
 }
-
