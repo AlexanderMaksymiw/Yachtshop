@@ -1676,9 +1676,10 @@ namespace AlexAPI.Controllers
             .Where(i => i.WebpData != null)
                 .ToListAsync();
 
-            var yachts = _dbContext.Yachts
+            var yachtsByMediaId = _dbContext.Yachts
                 .Include(y => y.Media)
                 .ThenInclude(m => m.Images)
+                .Where(y => y.Media != null)
                 .ToDictionary(y => y.Id);
 
             int uploadedCount = 0;
@@ -1687,10 +1688,10 @@ namespace AlexAPI.Controllers
             {
                 try
                 {
-                    if (!yachts.ContainsKey(image.MediaId))
+                    if (!yachtsByMediaId.ContainsKey(image.MediaId))
                         continue;
 
-                    var yacht = yachts[image.MediaId];
+                    var yacht = yachtsByMediaId[image.MediaId];
 
                     // Generate a MemoryStream for IFormFile
                     var stream = new MemoryStream(image.WebpData);
