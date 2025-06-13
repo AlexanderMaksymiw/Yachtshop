@@ -1680,7 +1680,7 @@ namespace AlexAPI.Controllers
                 .Include(y => y.Media)
                 .ThenInclude(m => m.Images)
                 .Where(y => y.Media != null)
-                .ToDictionary(y => y.Id);
+                .ToDictionary(y => y.Media.Id);
 
             int uploadedCount = 0;
 
