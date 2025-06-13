@@ -1673,6 +1673,9 @@ namespace AlexAPI.Controllers
         {
             logger.LogInformation("🚀 Starting UploadAllWebpImagesUsingFtpService");
 
+            var count = await _dbContext.Images.CountAsync(i => i.WebpData != null);
+            logger.LogInformation($"Images with WebpData count: {count}");
+
             var images = await _dbContext.Images
                 .Where(i => i.WebpData != null)
                 .ToListAsync();
