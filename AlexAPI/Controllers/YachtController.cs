@@ -11,6 +11,9 @@ using Dapper;
 using System.Drawing.Text;
 using AlexAPI.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using System.Text;
 
 namespace AlexAPI.Controllers
 {
@@ -1667,26 +1670,24 @@ namespace AlexAPI.Controllers
         }
 
 
-      
+
         [HttpPost("UploadAllWebpImagesUsingFtpService")]
         public async Task<IActionResult> UploadAllWebpImagesUsingFtpService()
         {
             logger.LogInformation("🚀 Starting UploadAllWebpImagesUsingFtpService");
 
-            var count = await _dbContext.Images.CountAsync(i => i.WebpData != null);
-            logger.LogInformation($"Images with WebpData count: {count}");
-
             var images = await _dbContext.Images
                 .Where(i => i.WebpData != null)
+                .Take(1)
                 .ToListAsync();
 
             logger.LogInformation($"🖼️ Loaded {images.Count} images with WebP data");
 
-            var yachtsByMediaId = _dbContext.Yachts
+            var yachtsByMediaId = await _dbContext.Yachts
                 .Include(y => y.Media)
                 .ThenInclude(m => m.Images)
                 .Where(y => y.Media != null)
-                .ToDictionary(y => y.Media.Id);
+                .ToDictionaryAsync(y => y.Media.Id);
 
             logger.LogInformation($"🛥️ Loaded {yachtsByMediaId.Count} yachts with valid Media references");
 
@@ -1698,14 +1699,37 @@ namespace AlexAPI.Controllers
             {
                 try
                 {
-                    if (!yachtsByMediaId.ContainsKey(image.MediaId))
+                    if (!yachtsByMediaId.TryGetValue(image.MediaId, out var yacht))
                     {
                         skippedCount++;
                         logger.LogWarning($"⏭️ Skipping image {image.Id} — no yacht found with MediaId {image.MediaId}");
                         continue;
                     }
 
-                    var yacht = yachtsByMediaId[image.MediaId];
+                    // Slugify helpers
+                    string Slugify(string input)
+                    {
+                        string normalized = input.Normalize(NormalizationForm.FormD);
+                        var sb = new StringBuilder();
+                        foreach (var c in normalized)
+                        {
+                            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                                sb.Append(c);
+                        }
+
+                        string slug = sb.ToString().Normalize(NormalizationForm.FormC);
+                        slug = slug.ToLowerInvariant();
+                        slug = Regex.Replace(slug, @"\s+", "-");
+                        slug = Regex.Replace(slug, @"[^a-z0-9\-]", "");
+                        slug = Regex.Replace(slug, @"-+", "-");
+                        return slug.Trim('-');
+                    }
+
+                    string slugYachtName = Slugify(yacht.Name ?? "unknown");
+                    string slugFileName = Slugify(Path.GetFileNameWithoutExtension(image.Filename ?? $"image-{image.Id}"));
+                    string typeFolder = image.Type.ToString();
+
+                    string destinationPath = Path.Combine("Images", "Yachts", yacht.Id.ToString(), slugYachtName, typeFolder);
 
                     // Generate a MemoryStream for IFormFile
                     using var stream = new MemoryStream(image.WebpData);
@@ -1715,20 +1739,34 @@ namespace AlexAPI.Controllers
                         ContentType = "image/webp"
                     };
 
-                    // Upload via FTP
-                    var uploadedUrl = await ftpService.UploadFile(formFile, $"Images/Yacht/{yacht.Id}", Path.GetFileNameWithoutExtension(image.Filename));
+                    // Upload
+                    var uploadedUrl = await ftpService.UploadFile(formFile, destinationPath, slugFileName);
 
-                    logger.LogInformation($"✅ Uploaded image {image.Id} to yacht {yacht.Id}, URL: {uploadedUrl}");
+                    logger.LogInformation($"✅ Uploaded image {image.Id} to {uploadedUrl}");
 
-                    // Add image to yacht media
-                    yacht.Media.Images ??= new List<AlexAPI.Models.Image>();
-                    yacht.Media.Images.Add(new AlexAPI.Models.Image
+                    // Update existing image's URL if already present
+                    var existing = yacht.Media.Images?.FirstOrDefault(i =>
+                        i.Filename == image.Filename &&
+                        i.Type == image.Type &&
+                        i.PhotographerName == image.PhotographerName);
+
+                    if (existing != null)
                     {
-                        Filename = image.Filename,
-                        PhotographerName = image.PhotographerName,
-                        Type = image.Type,
-                        Url = uploadedUrl
-                    });
+                        existing.Url = uploadedUrl;
+                        logger.LogInformation($"🔁 Updated existing image URL for image {image.Id}");
+                    }
+                    else
+                    {
+                        yacht.Media.Images ??= new List<AlexAPI.Models.Image>();
+                        yacht.Media.Images.Add(new AlexAPI.Models.Image
+                        {
+                            Filename = image.Filename,
+                            PhotographerName = image.PhotographerName,
+                            Type = image.Type,
+                            Url = uploadedUrl
+                        });
+                        logger.LogInformation($"➕ Added new image entry for image {image.Id}");
+                    }
 
                     uploadedCount++;
                 }
@@ -1745,7 +1783,7 @@ namespace AlexAPI.Controllers
 
             return Ok(new
             {
-                Message = $"{uploadedCount} WebP images uploaded via FTP and added to yachts.",
+                Message = $"{uploadedCount} WebP images uploaded via FTP and linked to yachts.",
                 Skipped = skippedCount,
                 Failed = failedCount,
                 TotalLoaded = images.Count
