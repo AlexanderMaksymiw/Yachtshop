@@ -1672,77 +1672,85 @@ namespace AlexAPI.Controllers
 
 
         [HttpPost("UploadAllWebpImagesUsingFtpService")]
-        public async Task<IActionResult> UploadAllWebpImagesUsingFtpService()
+        public async Task<IActionResult> UploadAllWebpImagesUsingFtpService(
+          [FromServices] IServiceScopeFactory scopeFactory)   // <-- we’ll spawn scopes for extra contexts
         {
-            var images = await _dbContext.Images
-                .Where(i => i.WebpData != null)
-                .Take(1)
-                .ToListAsync();
+            int uploaded = 0;
+            int skipped = 0;
+            int failed = 0;
+            int processed = 0;
 
-            var yachtsByMediaId = await _dbContext.Yachts
+            // ---------- 1.  PRE‑LOAD YACHT DICTIONARY (writer‑context) ----------
+            await using var writerScope = scopeFactory.CreateAsyncScope();
+            var writerDb = writerScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var yachtsByMediaId = await writerDb.Yachts
                 .Include(y => y.Media)
                 .ThenInclude(m => m.Images)
                 .Where(y => y.Media != null)
                 .ToDictionaryAsync(y => y.Media.Id);
 
-            int uploadedCount = 0;
-            int skippedCount = 0;
-            int failedCount = 0;
+            // ---------- 2.  STREAM IMAGES WITH A READ‑ONLY CONTEXT ----------
+            await using var readerScope = scopeFactory.CreateAsyncScope();
+            var readerDb = readerScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            foreach (var image in images)
+            await foreach (var image in readerDb.Images
+                .Where(i => i.WebpData != null)
+                .AsAsyncEnumerable())
             {
+                processed++;
+
                 try
                 {
                     if (!yachtsByMediaId.TryGetValue(image.MediaId, out var yacht))
                     {
-                        skippedCount++;
+                        skipped++;
                         continue;
                     }
 
-                    // Slugify helpers
-                    string Slugify(string input)
+                    // ---------- slug helpers ----------
+                    static string Slugify(string input)
                     {
                         string normalized = input.Normalize(NormalizationForm.FormD);
                         var sb = new StringBuilder();
                         foreach (var c in normalized)
-                        {
                             if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
                                 sb.Append(c);
-                        }
 
-                        string slug = sb.ToString().Normalize(NormalizationForm.FormC);
-                        slug = slug.ToLowerInvariant();
+                        string slug = sb.ToString().Normalize(NormalizationForm.FormC)
+                                        .ToLowerInvariant();
                         slug = Regex.Replace(slug, @"\s+", "-");
                         slug = Regex.Replace(slug, @"[^a-z0-9\-]", "");
                         slug = Regex.Replace(slug, @"-+", "-");
                         return slug.Trim('-');
                     }
-
                     string slugYachtName = Slugify(yacht.Name ?? "unknown");
                     string slugFileName = Slugify(Path.GetFileNameWithoutExtension(image.Filename ?? $"image-{image.Id}"));
                     string typeFolder = image.Type.ToString();
 
-                    string destinationPath = Path.Combine("Website", "Images", "Yachts", yacht.Id.ToString(), slugYachtName, typeFolder);
+                    string destPath = Path.Combine("Website", "Images", "Yachts",
+                                                    yacht.Id.ToString(), slugYachtName, typeFolder);
 
-                    await using var stream = new MemoryStream(image.WebpData);
-                    var formFile = new FormFile(stream, 0, stream.Length, image.Id.ToString(), image.Filename)
+                    await using var ms = new MemoryStream(image.WebpData);
+                    var formFile = new FormFile(ms, 0, ms.Length, image.Id.ToString(), image.Filename)
                     {
                         Headers = new HeaderDictionary(),
                         ContentType = "image/webp"
                     };
 
-                    await ftpService.UploadFile(formFile, destinationPath, slugFileName);
+                    await ftpService.UploadFile(formFile, destPath, slugFileName);
 
-                    string publicUrl = $"https://yachtshop.com/images/yachts/{yacht.Id}/{slugYachtName}/{typeFolder}/{slugFileName}.webp".Replace("\\", "/");
-                    var existing = yacht.Media.Images?.FirstOrDefault(i =>
-                        i.Filename == image.Filename &&
-                        i.Type == image.Type &&
-                        i.PhotographerName == image.PhotographerName);
+                    // ---------- update DB using WRITER context only ----------
+                    string publicUrl = $"https://yachtshop.com/images/yachts/{yacht.Id}/{slugYachtName}/{typeFolder}/{slugFileName}.webp"
+                                        .Replace("\\", "/");
+
+                    var existing = yacht.Media.Images?
+                        .FirstOrDefault(i => i.Filename == image.Filename &&
+                                             i.Type == image.Type &&
+                                             i.PhotographerName == image.PhotographerName);
 
                     if (existing != null)
-                    {
                         existing.Url = publicUrl;
-                    }
                     else
                     {
                         yacht.Media.Images ??= new List<AlexAPI.Models.Image>();
@@ -1755,22 +1763,23 @@ namespace AlexAPI.Controllers
                         });
                     }
 
-                    uploadedCount++;
+                    await writerDb.SaveChangesAsync();
+                    uploaded++;
+                    Console.WriteLine($"✅ Uploaded {uploaded} (ID {image.Id})");
                 }
-                catch
+                catch (Exception ex)
                 {
-                    failedCount++;
+                    failed++;
+                    Console.WriteLine($"❌ Failed  (ID {image.Id}) – {ex.Message}");
                 }
             }
 
-            await _dbContext.SaveChangesAsync();
-
             return Ok(new
             {
-                Message = $"{uploadedCount} WebP images uploaded via FTP and linked to yachts.",
-                Skipped = skippedCount,
-                Failed = failedCount,
-                TotalLoaded = images.Count
+                Message = $"{uploaded} images uploaded & linked.",
+                Skipped = skipped,
+                Failed = failed,
+                TotalProcessed = processed
             });
         }
     }
