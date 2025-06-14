@@ -1670,27 +1670,18 @@ namespace AlexAPI.Controllers
         }
 
 
-
         [HttpPost("UploadAllWebpImagesUsingFtpService")]
         public async Task<IActionResult> UploadAllWebpImagesUsingFtpService(
-        [FromServices] IServiceScopeFactory scopeFactory)   // <-- we’ll spawn scopes for extra contexts
+            [FromServices] IServiceScopeFactory scopeFactory)
         {
             int uploaded = 0;
             int skipped = 0;
             int failed = 0;
             int processed = 0;
 
-            // ---------- 1.  PRE‑LOAD YACHT DICTIONARY (writer‑context) ----------
             await using var writerScope = scopeFactory.CreateAsyncScope();
             var writerDb = writerScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var yachtsByMediaId = await writerDb.Yachts
-                .Include(y => y.Media)
-                .ThenInclude(m => m.Images)
-                .Where(y => y.Media != null)
-                .ToDictionaryAsync(y => y.Media.Id);
-
-            // ---------- 2.  STREAM IMAGES WITH A READ‑ONLY CONTEXT ----------
             await using var readerScope = scopeFactory.CreateAsyncScope();
             var readerDb = readerScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
@@ -1702,13 +1693,19 @@ namespace AlexAPI.Controllers
 
                 try
                 {
-                    if (!yachtsByMediaId.TryGetValue(image.MediaId, out var yacht))
+                    // Fetch yacht on demand for this image's MediaId
+                    var yacht = await writerDb.Yachts
+                        .Include(y => y.Media)
+                        .ThenInclude(m => m.Images)
+                        .FirstOrDefaultAsync(y => y.Media != null && y.Media.Id == image.MediaId);
+
+                    if (yacht == null)
                     {
                         skipped++;
                         continue;
                     }
 
-                    // ---------- slug helpers ----------
+                    // --- Slugify helper function ---
                     static string Slugify(string input)
                     {
                         string normalized = input.Normalize(NormalizationForm.FormD);
@@ -1732,11 +1729,8 @@ namespace AlexAPI.Controllers
                     string destPath = Path.Combine("Website", "Images", "Yachts",
                                                     yacht.Id.ToString(), slugYachtName, typeFolder);
 
-                    // **Ensure directory exists to avoid DirectoryNotFoundException**
                     if (!Directory.Exists(destPath))
-                    {
                         Directory.CreateDirectory(destPath);
-                    }
 
                     await using var ms = new MemoryStream(image.WebpData);
                     var formFile = new FormFile(ms, 0, ms.Length, image.Id.ToString(), image.Filename)
@@ -1747,7 +1741,6 @@ namespace AlexAPI.Controllers
 
                     await ftpService.UploadFile(formFile, destPath, slugFileName);
 
-                    // ---------- update DB using WRITER context only ----------
                     string publicUrl = $"https://yachtshop.com/images/yachts/{yacht.Id}/{slugYachtName}/{typeFolder}/{slugFileName}.webp"
                                         .Replace("\\", "/");
 
@@ -1771,6 +1764,11 @@ namespace AlexAPI.Controllers
                     }
 
                     await writerDb.SaveChangesAsync();
+
+                    // Detach all entities after save to reduce memory usage
+                    foreach (var entry in writerDb.ChangeTracker.Entries())
+                        entry.State = EntityState.Detached;
+
                     uploaded++;
                     Console.WriteLine($"✅ Uploaded {uploaded} (ID {image.Id})");
                 }
