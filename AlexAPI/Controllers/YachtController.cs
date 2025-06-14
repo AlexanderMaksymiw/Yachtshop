@@ -1674,22 +1674,16 @@ namespace AlexAPI.Controllers
         [HttpPost("UploadAllWebpImagesUsingFtpService")]
         public async Task<IActionResult> UploadAllWebpImagesUsingFtpService()
         {
-            logger.LogInformation("🚀 Starting UploadAllWebpImagesUsingFtpService");
-
             var images = await _dbContext.Images
                 .Where(i => i.WebpData != null)
                 .Take(1)
                 .ToListAsync();
-
-            logger.LogInformation($"🖼️ Loaded {images.Count} images with WebP data");
 
             var yachtsByMediaId = await _dbContext.Yachts
                 .Include(y => y.Media)
                 .ThenInclude(m => m.Images)
                 .Where(y => y.Media != null)
                 .ToDictionaryAsync(y => y.Media.Id);
-
-            logger.LogInformation($"🛥️ Loaded {yachtsByMediaId.Count} yachts with valid Media references");
 
             int uploadedCount = 0;
             int skippedCount = 0;
@@ -1702,7 +1696,6 @@ namespace AlexAPI.Controllers
                     if (!yachtsByMediaId.TryGetValue(image.MediaId, out var yacht))
                     {
                         skippedCount++;
-                        logger.LogWarning($"⏭️ Skipping image {image.Id} — no yacht found with MediaId {image.MediaId}");
                         continue;
                     }
 
@@ -1731,20 +1724,15 @@ namespace AlexAPI.Controllers
 
                     string destinationPath = Path.Combine("Website", "Images", "Yachts", yacht.Id.ToString(), slugYachtName, typeFolder);
 
-                    // Generate a MemoryStream for IFormFile
-                    using var stream = new MemoryStream(image.WebpData);
+                    await using var stream = new MemoryStream(image.WebpData);
                     var formFile = new FormFile(stream, 0, stream.Length, image.Id.ToString(), image.Filename)
                     {
                         Headers = new HeaderDictionary(),
                         ContentType = "image/webp"
                     };
 
-                    // Upload
                     var uploadedUrl = await ftpService.UploadFile(formFile, destinationPath, slugFileName);
 
-                    logger.LogInformation($"✅ Uploaded image {image.Id} to {uploadedUrl}");
-
-                    // Update existing image's URL if already present
                     var existing = yacht.Media.Images?.FirstOrDefault(i =>
                         i.Filename == image.Filename &&
                         i.Type == image.Type &&
@@ -1753,7 +1741,6 @@ namespace AlexAPI.Controllers
                     if (existing != null)
                     {
                         existing.Url = uploadedUrl;
-                        logger.LogInformation($"🔁 Updated existing image URL for image {image.Id}");
                     }
                     else
                     {
@@ -1765,21 +1752,17 @@ namespace AlexAPI.Controllers
                             Type = image.Type,
                             Url = uploadedUrl
                         });
-                        logger.LogInformation($"➕ Added new image entry for image {image.Id}");
                     }
 
                     uploadedCount++;
                 }
-                catch (Exception ex)
+                catch
                 {
                     failedCount++;
-                    logger.LogError(ex, $"💥 Failed to upload image {image.Id}: {ex.Message}");
                 }
             }
 
             await _dbContext.SaveChangesAsync();
-
-            logger.LogInformation($"🏁 Done. Uploaded: {uploadedCount}, Skipped: {skippedCount}, Failed: {failedCount}");
 
             return Ok(new
             {
