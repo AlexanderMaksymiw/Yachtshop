@@ -1673,7 +1673,7 @@ namespace AlexAPI.Controllers
 
         [HttpPost("UploadAllWebpImagesUsingFtpService")]
         public async Task<IActionResult> UploadAllWebpImagesUsingFtpService(
-          [FromServices] IServiceScopeFactory scopeFactory)   // <-- we’ll spawn scopes for extra contexts
+        [FromServices] IServiceScopeFactory scopeFactory)   // <-- we’ll spawn scopes for extra contexts
         {
             int uploaded = 0;
             int skipped = 0;
@@ -1724,12 +1724,19 @@ namespace AlexAPI.Controllers
                         slug = Regex.Replace(slug, @"-+", "-");
                         return slug.Trim('-');
                     }
+
                     string slugYachtName = Slugify(yacht.Name ?? "unknown");
                     string slugFileName = Slugify(Path.GetFileNameWithoutExtension(image.Filename ?? $"image-{image.Id}"));
                     string typeFolder = image.Type.ToString();
 
                     string destPath = Path.Combine("Website", "Images", "Yachts",
                                                     yacht.Id.ToString(), slugYachtName, typeFolder);
+
+                    // **Ensure directory exists to avoid DirectoryNotFoundException**
+                    if (!Directory.Exists(destPath))
+                    {
+                        Directory.CreateDirectory(destPath);
+                    }
 
                     await using var ms = new MemoryStream(image.WebpData);
                     var formFile = new FormFile(ms, 0, ms.Length, image.Id.ToString(), image.Filename)
