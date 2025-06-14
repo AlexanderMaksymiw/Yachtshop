@@ -1729,7 +1729,7 @@ namespace AlexAPI.Controllers
                     string slugFileName = Slugify(Path.GetFileNameWithoutExtension(image.Filename ?? $"image-{image.Id}"));
                     string typeFolder = image.Type.ToString();
 
-                    string destinationPath = Path.Combine("Images", "Yachts", yacht.Id.ToString(), slugYachtName, typeFolder);
+                    string destinationPath = Path.Combine("Website", "Images", "Yachts", yacht.Id.ToString(), slugYachtName, typeFolder);
 
                     // Generate a MemoryStream for IFormFile
                     using var stream = new MemoryStream(image.WebpData);
