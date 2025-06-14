@@ -1731,8 +1731,9 @@ namespace AlexAPI.Controllers
                         ContentType = "image/webp"
                     };
 
-                    var uploadedUrl = await ftpService.UploadFile(formFile, destinationPath, slugFileName);
+                    await ftpService.UploadFile(formFile, destinationPath, slugFileName);
 
+                    string publicUrl = $"https://yachtshop.com/images/yachts/{yacht.Id}/{slugYachtName}/{typeFolder}/{slugFileName}.webp".Replace("\\", "/");
                     var existing = yacht.Media.Images?.FirstOrDefault(i =>
                         i.Filename == image.Filename &&
                         i.Type == image.Type &&
@@ -1740,7 +1741,7 @@ namespace AlexAPI.Controllers
 
                     if (existing != null)
                     {
-                        existing.Url = uploadedUrl;
+                        existing.Url = publicUrl;
                     }
                     else
                     {
@@ -1750,7 +1751,7 @@ namespace AlexAPI.Controllers
                             Filename = image.Filename,
                             PhotographerName = image.PhotographerName,
                             Type = image.Type,
-                            Url = uploadedUrl
+                            Url = publicUrl
                         });
                     }
 
