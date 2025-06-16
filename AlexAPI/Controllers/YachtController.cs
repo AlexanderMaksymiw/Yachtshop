@@ -217,6 +217,8 @@ namespace AlexAPI.Controllers
         {
             try
             {
+                bool userHasAccess = User.IsInRole("User");
+
                 var parameters = new List<SqlParameter>();
                 var conditions = new List<string>();
 
@@ -396,25 +398,34 @@ namespace AlexAPI.Controllers
 
                     splitOn: "Id,Id,Id,Id",
                     parameters: sqlParams
+
                 );
                 // Map entity yachts to DTOs
                 var resultYachts = yachtDict.Values.ToList();
-                var yachtDtos = resultYachts.Select(y => new YachtDto
+                // Filter yachts based on access requirement and user role
+                var filteredYachts = resultYachts
+                    .Where(y => !y.RequiresUserAccess || userHasAccess)
+                    .ToList();
+
+                var yachtDtos = filteredYachts.Select(y => new YachtDto
                 {
                     Id = y.Id,
                     Name = y.Name,
                     Description = y.Description,
-                    SYTUrl = y.SYTUrl,
                     Price = y.Price,
                     OnSale = y.OnSale,
                     IsFeatured = y.IsFeatured,
                     HeroImageUrl = y.HeroImageUrl,
+                    RequiresUserAccess = y.RequiresUserAccess,
                     Specification = y.Specification != null ? MapToSpecDto(y.Specification) : null,
                     Amenities = y.Amenities != null ? MapToAmenityDto(y.Amenities) : new AmenityDto
+
                     {
                         ToyNames = new List<string>(),
                         EquipmentNames = new List<string>()
-                    }
+                    },
+
+                    UserAccess = userHasAccess
                 }).ToList();
 
                 return Ok(yachtDtos);

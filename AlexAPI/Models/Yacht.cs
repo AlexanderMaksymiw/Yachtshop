@@ -19,5 +19,7 @@ namespace AlexAPI.Models
         public virtual Media Media { get; set; } = new Media();
         public virtual ICollection<Location>? Locations { get; set; }
         public virtual ICollection<KeyFeature>? KeyFeatures { get; set; }
+        public bool RequiresUserAccess { get; set; }
+
     }
 }
