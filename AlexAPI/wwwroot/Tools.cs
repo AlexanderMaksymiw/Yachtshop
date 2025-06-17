@@ -129,7 +129,7 @@ async function uploadCsv()
 
         const blob = await response.blob();
 
-        // Preview logic
+        // Show preview
         const text = await blob.text();
         const rows = text.split('\n').filter(r => r.trim().length).slice(0, 5);
         const table = document.createElement('table');
