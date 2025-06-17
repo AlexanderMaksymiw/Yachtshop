@@ -29,6 +29,7 @@ namespace AlexAPI
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<CsvCleaner>();
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseLazyLoadingProxies()
                     .UseSqlServer(
