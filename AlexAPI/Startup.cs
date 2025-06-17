@@ -180,7 +180,7 @@ namespace AlexAPI
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapDefaultControllerRoute();
+                endpoints.MapControllers(); // ✅ This enables attribute-routing like [Route("api/csv")]
             });
         }
     }
