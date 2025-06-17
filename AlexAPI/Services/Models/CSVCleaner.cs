@@ -2,49 +2,88 @@
 using CsvHelper.Configuration;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 
+// 1. Cleaner Interface
+public interface IFieldCleaner
+{
+    string Clean(string input);
+}
+
+// 2. Concrete Cleaners
+public class IntCleaner : IFieldCleaner
+{
+    public string Clean(string input)
+        => Regex.Match(input, @"\d+").Value;
+}
+
+public class FloatCleaner : IFieldCleaner
+{
+    public string Clean(string input)
+        => Regex.Match(input, @"\d+(\.\d+)?").Value;
+}
+
+public class MoneyCleaner : IFieldCleaner
+{
+    public string Clean(string input)
+        => Regex.Match(input, @"\d[\d,]*").Value.Replace(",", "");
+}
+
+public class ListCleaner : IFieldCleaner
+{
+    public string Clean(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "";
+        return string.Join(';',
+            input.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct());
+    }
+}
+
+public class NoOpCleaner : IFieldCleaner
+{
+    public string Clean(string input) => input.Trim();
+}
+
+// 3. The main CsvCleaner class
 public class CsvCleaner
 {
-    // Primary header map - can be extended or loaded externally
     private readonly Dictionary<string, string> _headerMap = new(StringComparer.OrdinalIgnoreCase)
     {
-        { "Title", "Name" },
-        { "Length (m)", "Length" },
-        { "image", "HeroImageUrl" },
-        { "Main Image", "HeroImageUrl" },
-        { "Charter Price", "Price" },
-        { "Sale Price", "Price" },
-        { "Hull", "HullType" },
-        { "Country Flag", "Flag" },
-        { "hero", "HeroImageUrl" },
-        { "Rooms", "Cabins" },
-        { "Crew Members", "Crew" },
-        { "Built", "YearBuilt" },
-        { "Toys List", "Toys" },
-        { "Equipment List", "Equipment" },
-        { "Subtype", "SubTypes" },
-        { "Sub-Type", "SubTypes" },
-        { "Specification SubType", "SubTypes" },
-
+        { "Title", "Name" }, { "Length (m)", "Length" }, { "image", "HeroImageUrl" },
+        { "Main Image", "HeroImageUrl" }, { "Charter Price", "Price" }, { "Sale Price", "Price" },
+        { "Hull", "HullType" }, { "Country Flag", "Flag" }, { "hero", "HeroImageUrl" },
+        { "Rooms", "Cabins" }, { "Crew Members", "Crew" }, { "Built", "YearBuilt" },
+        { "Toys List", "Toys" }, { "Equipment List", "Equipment" },
+        { "Subtype", "SubTypes" }, { "Sub-Type", "SubTypes" }, { "Specification SubType", "SubTypes" },
     };
 
-    // The canonical headers you want in your output CSV
-    private readonly List<string> _targetHeaders;
-    private readonly List<string> _outputHeaderOrder = GetDtoPropertyOrder<RawYachtCsvRow>();
+    private readonly Dictionary<string, IFieldCleaner> _fieldCleaners = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Guests", new IntCleaner() },
+        { "Cabins", new IntCleaner() },
+        { "Crew", new IntCleaner() },
+        { "Length", new FloatCleaner() },
+        { "Beam", new FloatCleaner() },
+        { "Draft", new FloatCleaner() },
+        { "Price", new MoneyCleaner() },
+        { "Toys", new ListCleaner() },
+        { "Equipment", new ListCleaner() },
+        { "SubTypes", new ListCleaner() },
+    };
 
-    private static List<string> GetDtoPropertyOrder<T>() =>
-        typeof(T).GetProperties()
-                 .Select(p => p.Name)
-                 .ToList();
+    private readonly List<string> _targetHeaders;
+    private readonly List<string> _outputHeaderOrder;
 
     public CsvCleaner()
     {
         _targetHeaders = _headerMap.Values.Distinct().ToList();
-        _outputHeaderOrder = GetDtoPropertyOrder<RawYachtCsvRow>();
+        _outputHeaderOrder = typeof(RawYachtCsvRow).GetProperties().Select(p => p.Name).ToList();
+    }
 
-}
-
-public async Task<MemoryStream> CleanCsvAsync(Stream inputCsvStream)
+    public async Task<MemoryStream> CleanCsvAsync(Stream inputCsvStream)
     {
         using var reader = new StreamReader(inputCsvStream, Encoding.UTF8, leaveOpen: true);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -57,41 +96,29 @@ public async Task<MemoryStream> CleanCsvAsync(Stream inputCsvStream)
 
         await csv.ReadAsync();
         csv.ReadHeader();
-        var originalHeaders = csv.HeaderRecord;
+        var originalHeaders = csv.HeaderRecord ?? Array.Empty<string>();
 
-        var mappedHeaders = new List<string>();
         var headerMapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // First pass: direct mapping from dictionary
-        foreach (var h in originalHeaders)
+        foreach (var header in originalHeaders)
         {
-            if (_headerMap.TryGetValue(h, out var mapped))
+            if (_headerMap.TryGetValue(header, out var mapped))
+                headerMapping[header] = mapped;
+            else
             {
-                mappedHeaders.Add(mapped);
-                headerMapping[h] = mapped;
+                var bestMatch = FindBestFuzzyMatch(header, _targetHeaders);
+                if (bestMatch != null)
+                    headerMapping[header] = bestMatch;
+                else
+                    Console.WriteLine($"⚠️  Unmapped header: {header}");
             }
         }
-
-        // Second pass: fuzzy match for headers not mapped yet
-        var unmappedHeaders = originalHeaders.Except(headerMapping.Keys).ToList();
-        foreach (var header in unmappedHeaders)
-        {
-            var bestMatch = FindBestFuzzyMatch(header, _targetHeaders);
-            if (bestMatch != null)
-            {
-                mappedHeaders.Add(bestMatch);
-                headerMapping[header] = bestMatch;
-            }
-            // else skip unknown headers
-        }
-
-        mappedHeaders = mappedHeaders.Distinct().ToList();
 
         var cleanedRows = new List<Dictionary<string, string>>();
 
         while (await csv.ReadAsync())
         {
-            var cleanRow = new Dictionary<string, string>();
+            var row = new Dictionary<string, string>();
 
             foreach (var originalHeader in originalHeaders)
             {
@@ -99,39 +126,25 @@ public async Task<MemoryStream> CleanCsvAsync(Stream inputCsvStream)
                     continue;
 
                 var rawValue = csv.GetField(originalHeader)?.Trim() ?? "";
-
-                // Normalize list fields
-                if (mappedHeader == "Toys" || mappedHeader == "Equipment" || mappedHeader == "SubTypes")
-                {
-                    cleanRow[mappedHeader] = NormalizeList(rawValue);
-                }
-                else
-                {
-                    cleanRow[mappedHeader] = rawValue;
-                }
+                var cleaner = _fieldCleaners.GetValueOrDefault(mappedHeader, new NoOpCleaner());
+                row[mappedHeader] = cleaner.Clean(rawValue);
             }
 
-            cleanedRows.Add(cleanRow);
+            cleanedRows.Add(row);
         }
 
-        // Output to MemoryStream
         var outputStream = new MemoryStream();
         using var writer = new StreamWriter(outputStream, Encoding.UTF8, leaveOpen: true);
         using var csvWriter = new CsvWriter(writer, CultureInfo.InvariantCulture);
 
-        // Write headers
         foreach (var header in _outputHeaderOrder)
             csvWriter.WriteField(header);
         await csvWriter.NextRecordAsync();
 
-        // Write rows
         foreach (var row in cleanedRows)
         {
-        foreach (var header in _outputHeaderOrder)
-            {
-                row.TryGetValue(header, out var val);
-                csvWriter.WriteField(val ?? "");
-            }
+            foreach (var header in _outputHeaderOrder)
+                csvWriter.WriteField(row.TryGetValue(header, out var val) ? val : "");
             await csvWriter.NextRecordAsync();
         }
 
@@ -140,61 +153,40 @@ public async Task<MemoryStream> CleanCsvAsync(Stream inputCsvStream)
         return outputStream;
     }
 
-    private string NormalizeList(string input)
-    {
-        if (string.IsNullOrWhiteSpace(input)) return "";
-
-        var items = input.Split(';', StringSplitOptions.RemoveEmptyEntries)
-                         .Select(i => i.Trim())
-                         .Where(i => !string.IsNullOrWhiteSpace(i))
-                         .Distinct();
-
-        return string.Join(';', items);
-    }
-
-    // Simple fuzzy matching using Levenshtein distance threshold
     private string? FindBestFuzzyMatch(string input, List<string> candidates, int maxDistance = 3)
     {
-        string? bestMatch = null;
-        int bestDistance = maxDistance + 1;
+        string? best = null;
+        int bestDist = maxDistance + 1;
 
         foreach (var candidate in candidates)
         {
-            int dist = LevenshteinDistance(input.ToLowerInvariant(), candidate.ToLowerInvariant());
-            if (dist < bestDistance)
+            int dist = LevenshteinDistance(input.ToLower(), candidate.ToLower());
+            if (dist < bestDist)
             {
-                bestDistance = dist;
-                bestMatch = candidate;
+                bestDist = dist;
+                best = candidate;
             }
         }
 
-        return bestMatch;
+        return best;
     }
 
-    // Classic Levenshtein distance implementation
     private int LevenshteinDistance(string s, string t)
     {
-        int n = s.Length;
-        int m = t.Length;
-        var d = new int[n + 1, m + 1];
+        int[,] d = new int[s.Length + 1, t.Length + 1];
+        for (int i = 0; i <= s.Length; i++) d[i, 0] = i;
+        for (int j = 0; j <= t.Length; j++) d[0, j] = j;
 
-        for (int i = 0; i <= n; i++) d[i, 0] = i;
-        for (int j = 0; j <= m; j++) d[0, j] = j;
-
-        for (int i = 1; i <= n; i++)
-        {
-            for (int j = 1; j <= m; j++)
+        for (int i = 1; i <= s.Length; i++)
+            for (int j = 1; j <= t.Length; j++)
             {
                 int cost = s[i - 1] == t[j - 1] ? 0 : 1;
-
-                d[i, j] = Math.Min(
-                    Math.Min(d[i - 1, j] + 1,    // deletion
-                             d[i, j - 1] + 1),   // insertion
-                    d[i - 1, j - 1] + cost       // substitution
-                );
+                d[i, j] = Math.Min(Math.Min(
+                        d[i - 1, j] + 1,
+                        d[i, j - 1] + 1),
+                    d[i - 1, j - 1] + cost);
             }
-        }
 
-        return d[n, m];
+        return d[s.Length, t.Length];
     }
 }

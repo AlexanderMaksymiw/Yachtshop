@@ -115,10 +115,11 @@
             previewTitle.style.display = 'none';
 
             try {
-                const response = await fetch('/api/csv/clean', {
+                const response = await fetch('https://localhost:44318/api/csv/clean', {
                     method: 'POST',
                     body: formData
                 });
+
 
                 if (!response.ok) {
                     const err = await response.text();
