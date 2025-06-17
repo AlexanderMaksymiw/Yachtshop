@@ -154,6 +154,7 @@ namespace AlexAPI
             dbInitializer.Initialize();
 
             app.UseHttpsRedirection();
+            app.UseDefaultFiles();
             app.UseStaticFiles();
             app.UseRouting();
             app.UseCors("AllowAll");
