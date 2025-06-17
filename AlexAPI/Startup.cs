@@ -143,6 +143,8 @@ namespace AlexAPI
             services.AddInjections();
             services.AddHangfire(x => x.UseSqlServerStorage(Configuration.GetConnectionString("DatabaseConnection")));
             services.AddHangfireServer();
+            services.AddScoped<DeduplicationService>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

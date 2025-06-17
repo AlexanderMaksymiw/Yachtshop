@@ -8,9 +8,15 @@
         {
             _context = context;
         }
+
         public void Save()
         {
             _context.SaveChanges();
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
         }
 
         private bool disposed = false;

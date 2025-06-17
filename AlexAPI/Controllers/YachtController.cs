@@ -25,15 +25,17 @@ namespace AlexAPI.Controllers
         private readonly YachtWorkUnit workUnit;
         private readonly IFTPService ftpService;
         private readonly ApplicationDbContext _dbContext;
+        private readonly DeduplicationService deduplicationService;
 
 
 
-        public YachtController(ILogger<YachtController> logger, ApplicationDbContext dbContext, YachtWorkUnit workUnit, IFTPService ftpService)
+        public YachtController(ILogger<YachtController> logger, ApplicationDbContext dbContext, YachtWorkUnit workUnit, IFTPService ftpService, DeduplicationService deduplicationService)
         {
             this.logger = logger;
             this._dbContext = dbContext;
             this.workUnit = workUnit;
             this.ftpService = ftpService;
+            this.deduplicationService = deduplicationService;
         }
 
         private AmenityDto MapToAmenityDto(Amenity amenity)
@@ -78,9 +80,20 @@ namespace AlexAPI.Controllers
             };
         }
 
+        private string GenerateCsv(List<YachtDuplicateReport> duplicates)
+        {
+             var sb = new StringBuilder();
+             sb.AppendLine("Name,ConfidenceScore,MatchedFields");
+             foreach (var dup in duplicates)
+             {
+                sb.AppendLine($"\"{dup.Name}\",{dup.ConfidenceScore},\"{dup.MatchedFields}\"");
+             }
+             return sb.ToString();
+        }
 
 
-        [HttpGet]
+
+            [HttpGet]
         [Route("GetById")]
         public IActionResult GetById(Guid id)
         {
@@ -1566,20 +1579,82 @@ namespace AlexAPI.Controllers
 
         [Roles(UserRoles.Admin, UserRoles.Broker)]
         [HttpPost]
-        [Route("Create")]
-        public IActionResult CreateYacht(Yacht yacht)
+        [Route("UpsertYachts")]
+        public async Task<IActionResult> UpsertYachts([FromBody] Yacht[] yachts)
         {
-            try
+            var duplicates = new List<YachtDuplicateReport>();
+
+            foreach (var yacht in yachts)
             {
-                workUnit.YachtRepository.Insert(yacht);
-                workUnit.Save();
-                return Ok();
+                // Map to input model for deduplication
+                var yachtInput = new YachtInputModel
+                {
+                    Name = yacht.Name,
+                    Specification = new SpecificationInputModel
+                    {
+                        Builder = yacht.Specification?.Builder ?? "",
+                        YearBuilt = yacht.Specification?.YearBuilt ?? 0,
+                        Length = (double)(yacht.Specification?.Length ?? 0m),
+                        Guests = yacht.Specification?.Guests ?? 0,
+                        Cabins = yacht.Specification?.Cabins ?? 0,
+                        Type = yacht.Specification?.Type ?? ""
+                    }
+                };
+
+                // Check for duplicates
+                var (isDup, score, matchedFields, existingYacht) = await deduplicationService.CheckDuplicateAsync(yachtInput);
+
+                if (isDup)
+                {
+                    // If this yacht has ID and matches existing yacht ID, allow update (not a new duplicate)
+                    if (yacht.Id == Guid.Empty)
+                    {
+                        workUnit.YachtRepository.Update(yacht);
+                    }
+                    else
+                    {
+                        // Duplicate detected, skip and add to report
+                        duplicates.Add(new YachtDuplicateReport
+                        {
+                            Name = yacht.Name,
+                            ConfidenceScore = score,
+                            MatchedFields = string.Join(", ", matchedFields)
+                        });
+                        continue;
+                    }
+                }
+                else
+                {
+                    // No duplicate found
+                    if (yacht.Id == Guid.Empty)
+                    {
+                        // New yacht, insert
+                        workUnit.YachtRepository.Insert(yacht);
+                    }
+                    else
+                    {
+                        // Existing yacht, update
+                        workUnit.YachtRepository.Update(yacht);
+                    }
+                }
             }
-            catch (Exception ex)
+
+            // Save all changes at once for efficiency
+            await workUnit.SaveChangesAsync();
+
+            if (duplicates.Count > 0)
             {
-                return BadRequest(ex);
+                var csv = GenerateCsv(duplicates);
+                return File(
+                    System.Text.Encoding.UTF8.GetBytes(csv),
+                    "text/csv",
+                    $"DuplicateYachts_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
             }
+
+            return Ok(new { Message = "Yachts upserted successfully." });
         }
+
+
 
         [Roles(UserRoles.Admin, UserRoles.Broker)]
         [HttpPost]
@@ -1596,26 +1671,6 @@ namespace AlexAPI.Controllers
             catch (Exception ex)
             {
                 return BadRequest(ex);
-            }
-        }
-
-        [Roles(UserRoles.Admin, UserRoles.Broker)]
-        [HttpPost]
-        [Route("BulkUpdate")]
-        public IActionResult UpdateYachts(Yacht[] yachts)
-        {
-            try
-            {
-                Array.ForEach(yachts, yacht =>
-                {
-                    workUnit.YachtRepository.Update(yacht);
-                    workUnit.Save();
-                });
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
             }
         }
 

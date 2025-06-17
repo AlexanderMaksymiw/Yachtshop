@@ -30,6 +30,8 @@ namespace AlexAPI.Data
         public DbSet<SubType> SubTypes { get; set; }
         public DbSet<CharterDeal> Deals { get; set; }
         public DbSet<DealDay> DealDays { get; set; }
+        public DbSet<DuplicateYachtLog> DuplicateYachtLog { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
