@@ -64,29 +64,36 @@ public class CsvCleaner
         { "Subtype", "SubTypes" }, { "Sub-Type", "SubTypes" }, { "Specification SubType", "SubTypes" },
         { "Yacht Type", "YachtType" }, { "Guests", "Guests" }, { "Beam", "Beam" }, { "Draft", "Draft" },
         { "Gross Tonnage", "GrossTonnage" }, { "Cruising speed", "CruisingSpeed" }, { "Model", "Model" },
-        { "Builder", "Builder" },
+        { "Builder", "Builder" }
+    };
 
+    private readonly Dictionary<string, List<string>> _preferredSources = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "Length", new() { "length_1", "js_compare_length", "Length" } },
+        { "Guests", new() { "guests_1", "Guests" } },
+        { "Cabins", new() { "cabins_1", "Cabins" } },
+        { "Builder", new() { "Builder", "js_compare_builder" } },
+        { "Price", new() { "perweek", "Price" } }
     };
 
     private readonly Dictionary<string, IFieldCleaner> _fieldCleaners = new(StringComparer.OrdinalIgnoreCase)
-{
-    { "Guests", new IntCleaner() },
-    { "Cabins", new IntCleaner() },
-    { "Crew", new IntCleaner() },
-    { "Length", new FloatCleaner() },
-    { "Beam", new FloatCleaner() },
-    { "Draft", new FloatCleaner() },
-    { "Price", new MoneyCleaner() },
-    { "Toys", new ListCleaner() },
-    { "Equipment", new ListCleaner() },
-    { "SubTypes", new ListCleaner() },
-    { "GrossTonnage", new IntCleaner() },        
-    { "CruisingSpeed", new FloatCleaner() },      
-    { "YachtType", new NoOpCleaner() },
-    { "Model", new NoOpCleaner() },
-    { "Builder", new NoOpCleaner() }
-};
-
+    {
+        { "Guests", new IntCleaner() },
+        { "Cabins", new IntCleaner() },
+        { "Crew", new IntCleaner() },
+        { "Length", new FloatCleaner() },
+        { "Beam", new FloatCleaner() },
+        { "Draft", new FloatCleaner() },
+        { "Price", new MoneyCleaner() },
+        { "Toys", new ListCleaner() },
+        { "Equipment", new ListCleaner() },
+        { "SubTypes", new ListCleaner() },
+        { "GrossTonnage", new IntCleaner() },
+        { "CruisingSpeed", new FloatCleaner() },
+        { "YachtType", new NoOpCleaner() },
+        { "Model", new NoOpCleaner() },
+        { "Builder", new NoOpCleaner() }
+    };
 
     private readonly List<string> _targetHeaders;
     private readonly List<string> _outputHeaderOrder;
@@ -113,18 +120,45 @@ public class CsvCleaner
         var originalHeaders = csv.HeaderRecord ?? Array.Empty<string>();
 
         var headerMapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var usedTargets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var target in _targetHeaders)
+        {
+            if (_preferredSources.TryGetValue(target, out var preferred))
+            {
+                foreach (var candidate in preferred)
+                {
+                    if (originalHeaders.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+                    {
+                        headerMapping[candidate] = target;
+                        usedTargets.Add(target);
+                        break;
+                    }
+                }
+            }
+        }
 
         foreach (var header in originalHeaders)
         {
-            if (_headerMap.TryGetValue(header, out var mapped))
+            if (headerMapping.ContainsKey(header)) continue;
+
+            if (_headerMap.TryGetValue(header, out var mapped) && !usedTargets.Contains(mapped))
+            {
                 headerMapping[header] = mapped;
+                usedTargets.Add(mapped);
+            }
             else
             {
-                var bestMatch = FindBestFuzzyMatch(header, _targetHeaders);
+                var bestMatch = FindBestFuzzyMatch(header, _targetHeaders.Except(usedTargets).ToList());
                 if (bestMatch != null)
+                {
                     headerMapping[header] = bestMatch;
+                    usedTargets.Add(bestMatch);
+                }
                 else
+                {
                     Console.WriteLine($"⚠️  Unmapped header: {header}");
+                }
             }
         }
 
@@ -152,7 +186,6 @@ public class CsvCleaner
                 }
             }
 
-            // ✅ FIX: If Name looks like "11 metres", extract from HeroImageUrl instead
             if (row.TryGetValue("Name", out var nameVal) && nameVal.Contains("metres", StringComparison.OrdinalIgnoreCase))
             {
                 if (row.TryGetValue("HeroImageUrl", out var urlVal) && !string.IsNullOrWhiteSpace(urlVal))
@@ -223,7 +256,7 @@ public class CsvCleaner
 
     private string ExtractNameFromUrl(string url)
     {
-        var match = Regex.Match(url, @"\/([\w\-]+)-Superyacht", RegexOptions.IgnoreCase);
+        var match = Regex.Match(url, @"/([\w\-]+)-Superyacht", RegexOptions.IgnoreCase);
         if (!match.Success) return "Unknown";
 
         var raw = match.Groups[1].Value;
