@@ -3,6 +3,10 @@ using CsvHelper.Configuration;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using System.IO;
 
 // 1. Cleaner Interface
 public interface IFieldCleaner
@@ -80,7 +84,7 @@ public class CsvCleaner
     public CsvCleaner()
     {
         _targetHeaders = _headerMap.Values.Distinct().ToList();
-        _outputHeaderOrder = typeof(RawYachtCsvRow).GetProperties().Select(p => p.Name).ToList();
+        _outputHeaderOrder = _targetHeaders;
     }
 
     public async Task<MemoryStream> CleanCsvAsync(Stream inputCsvStream)
@@ -125,16 +129,18 @@ public class CsvCleaner
                 if (!headerMapping.TryGetValue(originalHeader, out var mappedHeader))
                     continue;
 
-                var rawValue = csv.GetField(originalHeader)?.Trim() ?? "";
+                var rawValue = csv.GetField(originalHeader) ?? "";
+                rawValue = Regex.Replace(rawValue.Trim(), @"\s+", " ");
                 var cleaner = _fieldCleaners.GetValueOrDefault(mappedHeader, new NoOpCleaner());
 
-                // ✅ Only overwrite if value is non-empty OR it's the first time this field is being added
-                if (!row.ContainsKey(mappedHeader) || !string.IsNullOrWhiteSpace(rawValue))
+                var cleanedValue = cleaner.Clean(rawValue);
+
+                if (!row.TryGetValue(mappedHeader, out var existingValue) || string.IsNullOrWhiteSpace(existingValue))
                 {
-                    row[mappedHeader] = cleaner.Clean(rawValue);
+                    if (!string.IsNullOrWhiteSpace(cleanedValue))
+                        row[mappedHeader] = cleanedValue;
                 }
             }
-
 
             // ✅ FIX: If Name looks like "11 metres", extract from HeroImageUrl instead
             if (row.TryGetValue("Name", out var nameVal) && nameVal.Contains("metres", StringComparison.OrdinalIgnoreCase))
@@ -147,7 +153,6 @@ public class CsvCleaner
 
             cleanedRows.Add(row);
         }
-
 
         var outputStream = new MemoryStream();
         using var writer = new StreamWriter(outputStream, Encoding.UTF8, leaveOpen: true);
@@ -205,6 +210,7 @@ public class CsvCleaner
 
         return d[s.Length, t.Length];
     }
+
     private string ExtractNameFromUrl(string url)
     {
         var match = Regex.Match(url, @"\/([\w\-]+)-Superyacht", RegexOptions.IgnoreCase);
