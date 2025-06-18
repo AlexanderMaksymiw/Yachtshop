@@ -62,21 +62,31 @@ public class CsvCleaner
         { "Rooms", "Cabins" }, { "Crew Members", "Crew" }, { "Built", "YearBuilt" },
         { "Toys List", "Toys" }, { "Equipment List", "Equipment" },
         { "Subtype", "SubTypes" }, { "Sub-Type", "SubTypes" }, { "Specification SubType", "SubTypes" },
+        { "Yacht Type", "YachtType" }, { "Guests", "Guests" }, { "Beam", "Beam" }, { "Draft", "Draft" },
+        { "Gross Tonnage", "GrossTonnage" }, { "Cruising speed", "CruisingSpeed" }, { "Model", "Model" },
+        { "Builder", "Builder" },
+
     };
 
     private readonly Dictionary<string, IFieldCleaner> _fieldCleaners = new(StringComparer.OrdinalIgnoreCase)
-    {
-        { "Guests", new IntCleaner() },
-        { "Cabins", new IntCleaner() },
-        { "Crew", new IntCleaner() },
-        { "Length", new FloatCleaner() },
-        { "Beam", new FloatCleaner() },
-        { "Draft", new FloatCleaner() },
-        { "Price", new MoneyCleaner() },
-        { "Toys", new ListCleaner() },
-        { "Equipment", new ListCleaner() },
-        { "SubTypes", new ListCleaner() },
-    };
+{
+    { "Guests", new IntCleaner() },
+    { "Cabins", new IntCleaner() },
+    { "Crew", new IntCleaner() },
+    { "Length", new FloatCleaner() },
+    { "Beam", new FloatCleaner() },
+    { "Draft", new FloatCleaner() },
+    { "Price", new MoneyCleaner() },
+    { "Toys", new ListCleaner() },
+    { "Equipment", new ListCleaner() },
+    { "SubTypes", new ListCleaner() },
+    { "GrossTonnage", new IntCleaner() },        
+    { "CruisingSpeed", new FloatCleaner() },      
+    { "YachtType", new NoOpCleaner() },
+    { "Model", new NoOpCleaner() },
+    { "Builder", new NoOpCleaner() }
+};
+
 
     private readonly List<string> _targetHeaders;
     private readonly List<string> _outputHeaderOrder;
