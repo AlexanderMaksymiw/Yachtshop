@@ -130,8 +130,18 @@ public class CsvCleaner
                 row[mappedHeader] = cleaner.Clean(rawValue);
             }
 
+            // ✅ FIX: If Name looks like "11 metres", extract from HeroImageUrl instead
+            if (row.TryGetValue("Name", out var nameVal) && nameVal.Contains("metres", StringComparison.OrdinalIgnoreCase))
+            {
+                if (row.TryGetValue("HeroImageUrl", out var urlVal) && !string.IsNullOrWhiteSpace(urlVal))
+                {
+                    row["Name"] = ExtractNameFromUrl(urlVal);
+                }
+            }
+
             cleanedRows.Add(row);
         }
+
 
         var outputStream = new MemoryStream();
         using var writer = new StreamWriter(outputStream, Encoding.UTF8, leaveOpen: true);
@@ -188,5 +198,13 @@ public class CsvCleaner
             }
 
         return d[s.Length, t.Length];
+    }
+    private string ExtractNameFromUrl(string url)
+    {
+        var match = Regex.Match(url, @"\/([\w\-]+)-Superyacht", RegexOptions.IgnoreCase);
+        if (!match.Success) return "Unknown";
+
+        var raw = match.Groups[1].Value;
+        return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(raw.Replace("-", " "));
     }
 }
