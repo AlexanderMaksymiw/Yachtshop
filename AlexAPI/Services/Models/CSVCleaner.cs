@@ -127,8 +127,14 @@ public class CsvCleaner
 
                 var rawValue = csv.GetField(originalHeader)?.Trim() ?? "";
                 var cleaner = _fieldCleaners.GetValueOrDefault(mappedHeader, new NoOpCleaner());
-                row[mappedHeader] = cleaner.Clean(rawValue);
+
+                // ✅ Only overwrite if value is non-empty OR it's the first time this field is being added
+                if (!row.ContainsKey(mappedHeader) || !string.IsNullOrWhiteSpace(rawValue))
+                {
+                    row[mappedHeader] = cleaner.Clean(rawValue);
+                }
             }
+
 
             // ✅ FIX: If Name looks like "11 metres", extract from HeroImageUrl instead
             if (row.TryGetValue("Name", out var nameVal) && nameVal.Contains("metres", StringComparison.OrdinalIgnoreCase))
