@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace AlexAPI.Controllers
 {
@@ -1582,8 +1583,6 @@ namespace AlexAPI.Controllers
         [Route("UpsertYachts")]
         public async Task<IActionResult> UpsertYachts([FromBody] Yacht[] yachts)
         {
-            var duplicates = new List<YachtDuplicateReport>();
-
             foreach (var yacht in yachts)
             {
                 // Map to input model for deduplication
@@ -1601,58 +1600,40 @@ namespace AlexAPI.Controllers
                     }
                 };
 
-                // Check for duplicates
                 var (isDup, score, matchedFields, existingYacht) = await deduplicationService.CheckDuplicateAsync(yachtInput);
 
                 if (isDup)
                 {
-                    // If this yacht has ID and matches existing yacht ID, allow update (not a new duplicate)
-                    if (yacht.Id == Guid.Empty)
+                    // Log the duplicate into database
+                    var yachtDup = new YachtDuplicate
                     {
-                        workUnit.YachtRepository.Update(yacht);
-                    }
-                    else
-                    {
-                        // Duplicate detected, skip and add to report
-                        duplicates.Add(new YachtDuplicateReport
-                        {
-                            Name = yacht.Name,
-                            ConfidenceScore = score,
-                            MatchedFields = string.Join(", ", matchedFields)
-                        });
-                        continue;
-                    }
+                        YachtName = yacht.Name,
+                        ConfidenceScore = score,
+                        MatchedFields = string.Join(", ", matchedFields),
+                        DateDetected = DateTime.UtcNow,
+                        OriginalYachtId = existingYacht?.Id,
+                        IncomingYachtData = JsonConvert.SerializeObject(yacht)
+                    };
+
+                    workUnit.YachtDuplicateRepository.Insert(yachtDup);
+                }
+
+                // Proceed with insert or update
+                if (yacht.Id == Guid.Empty)
+                {
+                    workUnit.YachtRepository.Insert(yacht);
                 }
                 else
                 {
-                    // No duplicate found
-                    if (yacht.Id == Guid.Empty)
-                    {
-                        // New yacht, insert
-                        workUnit.YachtRepository.Insert(yacht);
-                    }
-                    else
-                    {
-                        // Existing yacht, update
-                        workUnit.YachtRepository.Update(yacht);
-                    }
+                    workUnit.YachtRepository.Update(yacht);
                 }
             }
 
-            // Save all changes at once for efficiency
             await workUnit.SaveChangesAsync();
 
-            if (duplicates.Count > 0)
-            {
-                var csv = GenerateCsv(duplicates);
-                return File(
-                    System.Text.Encoding.UTF8.GetBytes(csv),
-                    "text/csv",
-                    $"DuplicateYachts_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
-            }
-
-            return Ok(new { Message = "Yachts upserted successfully." });
+            return Ok(new { Message = "Yachts processed successfully. Duplicates have been logged." });
         }
+
 
 
 

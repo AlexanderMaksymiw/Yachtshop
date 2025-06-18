@@ -31,6 +31,8 @@ namespace AlexAPI.Data
         public DbSet<CharterDeal> Deals { get; set; }
         public DbSet<DealDay> DealDays { get; set; }
         public DbSet<DuplicateYachtLog> DuplicateYachtLog { get; set; }
+        public DbSet<YachtDuplicate> YachtDuplicates { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
