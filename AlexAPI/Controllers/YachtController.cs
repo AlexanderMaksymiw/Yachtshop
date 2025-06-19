@@ -15,6 +15,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Text;
 using Newtonsoft.Json;
+using CsvHelper;
 
 namespace AlexAPI.Controllers
 {
@@ -1642,7 +1643,34 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("YachtLocationUpdate")]
+        public IActionResult YachtLoationUpdate(IFormFile csv)
+        {
+            try
+            {
+                if (csv == null || csv.Length == 0)
+                    return BadRequest("CSV file is empty or missing.");
 
+                using var stream = csv.OpenReadStream();
+                using var reader = new StreamReader(stream);
+                using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
+
+                var records = csvReader.GetRecords<YachtLocation>().ToList();
+
+                records.ForEach(x =>
+                {
+                    var yacht = workUnit.YachtRepository.GetByID(x.Id);
+                    yacht.Locations.Add(workUnit.LocationRepository.Get().First(y => x.LocationName == y.Name));
+                });
+                workUnit.Save();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
+        }
 
 
         [Roles(UserRoles.Admin, UserRoles.Broker)]
