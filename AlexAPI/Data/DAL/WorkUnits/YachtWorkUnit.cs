@@ -9,7 +9,7 @@ public class YachtWorkUnit : GenericWorkUnit
     private GenericRepository<Yacht> yachtRepository;
     private GenericRepository<Location> locationRepository;
     private GenericRepository<SubType> subTypeRepository;
-    private GenericRepository<YachtDuplicate> yachtDuplicateRepository;
+    private GenericRepository<YachtDuplicateLog> yachtDuplicateRepository;
 
     public YachtWorkUnit(ApplicationDbContext context) : base(context)
     {
@@ -51,13 +51,13 @@ public class YachtWorkUnit : GenericWorkUnit
         }
     }
 
-    public GenericRepository<YachtDuplicate> YachtDuplicateRepository
+    public GenericRepository<YachtDuplicateLog> YachtDuplicateRepository
     {
         get
         {
             if (yachtDuplicateRepository == null)
             {
-                yachtDuplicateRepository = new GenericRepository<YachtDuplicate>(_context);
+                yachtDuplicateRepository = new GenericRepository<YachtDuplicateLog>(_context);
             }
             return yachtDuplicateRepository;
         }

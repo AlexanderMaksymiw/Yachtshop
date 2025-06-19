@@ -13,12 +13,12 @@ namespace AlexAPI.Models
         public bool OnSale { get; set; }
         public bool IsFeatured { get; set; }
         public string? HeroImageUrl { get; set; }
+        public bool RequiresUserAccess { get; set; }
         public virtual Specification Specification { get; set; } = new Specification();
         public virtual Amenity Amenities { get; set; } = new Amenity();
         public virtual ICollection<Award>? Awards { get; set; }
         public virtual Media Media { get; set; } = new Media();
         public virtual ICollection<Location>? Locations { get; set; }
         public virtual ICollection<KeyFeature>? KeyFeatures { get; set; }
-
     }
 }

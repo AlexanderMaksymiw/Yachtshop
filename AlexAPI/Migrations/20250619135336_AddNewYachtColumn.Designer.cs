@@ -4,6 +4,7 @@ using AlexAPI.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AlexAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250619135336_AddNewYachtColumn")]
+    partial class AddNewYachtColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -205,6 +208,30 @@ namespace AlexAPI.Migrations
                     b.HasIndex("ToLocationId");
 
                     b.ToTable("DealDays", (string)null);
+                });
+
+            modelBuilder.Entity("AlexAPI.Models.DuplicateYachtLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ConflictFields")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("DateFlagged")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DuplicateYachtLog");
                 });
 
             modelBuilder.Entity("AlexAPI.Models.Equipment", b =>
@@ -632,40 +659,6 @@ namespace AlexAPI.Migrations
                     b.ToTable("Yachts", (string)null);
                 });
 
-            modelBuilder.Entity("AlexAPI.Models.YachtDuplicateLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<double>("ConfidenceScore")
-                        .HasColumnType("float");
-
-                    b.Property<DateTime>("DateDetected")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DuplicateYacht")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MatchedFields")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("OriginalYachtId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("YachtName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OriginalYachtId");
-
-                    b.ToTable("YachtDuplicateLogs", (string)null);
-                });
-
             modelBuilder.Entity("AmenityEquipment", b =>
                 {
                     b.Property<Guid>("AmenitiesId")
@@ -859,6 +852,38 @@ namespace AlexAPI.Migrations
                     b.ToTable("SpecificationSubType");
                 });
 
+            modelBuilder.Entity("YachtDuplicate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<double>("ConfidenceScore")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("DateDetected")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IncomingYachtData")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MatchedFields")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("OriginalYachtId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("YachtName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("YachtDuplicates");
+                });
+
             modelBuilder.Entity("AlexAPI.Models.Award", b =>
                 {
                     b.HasOne("AlexAPI.Models.Yacht", null)
@@ -974,17 +999,6 @@ namespace AlexAPI.Migrations
                     b.Navigation("Media");
 
                     b.Navigation("Specification");
-                });
-
-            modelBuilder.Entity("AlexAPI.Models.YachtDuplicateLog", b =>
-                {
-                    b.HasOne("AlexAPI.Models.Yacht", "OriginalYacht")
-                        .WithMany()
-                        .HasForeignKey("OriginalYachtId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("OriginalYacht");
                 });
 
             modelBuilder.Entity("AmenityEquipment", b =>

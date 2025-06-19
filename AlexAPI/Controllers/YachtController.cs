@@ -1,5 +1,4 @@
 ﻿using AlexAPI.Authentication;
-using AlexAPI.Data.DAL.WorkUnits;
 using AlexAPI.Library.Locations;
 using AlexAPI.Models;
 using AlexAPI.Data;
@@ -8,16 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using AlexAPI.Services.Interfaces;
 using Microsoft.Data.SqlClient;
 using Dapper;
-using System.Drawing.Text;
 using AlexAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Text;
 using Newtonsoft.Json;
-using CsvHelper;
-using Azure.Identity;
-using System.Reflection.Metadata.Ecma335;
 
 namespace AlexAPI.Controllers
 {
@@ -84,20 +79,7 @@ namespace AlexAPI.Controllers
             };
         }
 
-        private string GenerateCsv(List<YachtDuplicateReport> duplicates)
-        {
-             var sb = new StringBuilder();
-             sb.AppendLine("Name,ConfidenceScore,MatchedFields");
-             foreach (var dup in duplicates)
-             {
-                sb.AppendLine($"\"{dup.Name}\",{dup.ConfidenceScore},\"{dup.MatchedFields}\"");
-             }
-             return sb.ToString();
-        }
-
-
-
-            [HttpGet]
+        [HttpGet]
         [Route("GetById")]
         public IActionResult GetById(Guid id)
         {
@@ -421,6 +403,7 @@ namespace AlexAPI.Controllers
                 var resultYachts = yachtDict.Values.ToList();
                 // Filter yachts based on access requirement and user role
                 var filteredYachts = resultYachts
+                    .Where(y => !y.RequiresUserAccess || userHasAccess)
                     .ToList();
 
                 var yachtDtos = filteredYachts.Select(y => new YachtDto
@@ -432,6 +415,7 @@ namespace AlexAPI.Controllers
                     OnSale = y.OnSale,
                     IsFeatured = y.IsFeatured,
                     HeroImageUrl = y.HeroImageUrl,
+                    RequiresUserAccess = y.RequiresUserAccess,
                     Specification = y.Specification != null ? MapToSpecDto(y.Specification) : null,
                     Amenities = y.Amenities != null ? MapToAmenityDto(y.Amenities) : new AmenityDto
 
@@ -1580,56 +1564,20 @@ namespace AlexAPI.Controllers
             }
         }
 
-        [HttpGet]
-        [Route("UploadLocations")]
-        public IActionResult UploadLocations()
-        {
-            try
-            {
-                LocationHelper.GetAllLocations().ForEach(x =>
-                {
-                    workUnit.LocationRepository.Insert(x);
-                });
-                workUnit.Save();
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
         [HttpPost]
-        [Route("YachtLocationUpdate")]
-        public IActionResult YachtLoationUpdate(IFormFile csv)
+        [Route("Update")]
+        public IActionResult UpdateYacht(Yacht yacht)
         {
             try
             {
-                if (csv == null || csv.Length == 0)
-                    return BadRequest("CSV file is empty or missing.");
-
-                using var stream = csv.OpenReadStream();
-                using var reader = new StreamReader(stream);
-                using var csvReader = new CsvReader(reader, CultureInfo.InvariantCulture);
-
-                var records = csvReader.GetRecords<YachtLocation>().ToList();
-
-                foreach (var x in records)
-                {
-                    var yacht = workUnit.YachtRepository.GetByID(new Guid(x.Id));
-                    var location = workUnit.LocationRepository.Get().FirstOrDefault(y => x.LocationName == y.Name);
-                    if(location == null)
-                    {
-                        continue;
-                    }
-                    yacht.Locations.Add(location);
-                };
+                workUnit.YachtRepository.Update(yacht);
                 workUnit.Save();
                 return Ok();
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest(ex);
             }
         }
 
@@ -1811,6 +1759,99 @@ namespace AlexAPI.Controllers
                 Failed = failed,
                 TotalProcessed = processed
             });
+        }
+
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpPost]
+        [Route("InsertYachts")]
+        public async Task<IActionResult> InsertYachts([FromBody] Yacht[] yachts)
+        {
+            List<YachtDuplicateLog> duplicates = new List<YachtDuplicateLog>();
+
+            foreach (var yacht in yachts)
+            {
+                // Map to input model for deduplication
+                var yachtInput = new YachtInputModel
+                {
+                    Name = yacht.Name,
+                    Specification = new SpecificationInputModel
+                    {
+                        Builder = yacht.Specification?.Builder ?? "",
+                        YearBuilt = yacht.Specification?.YearBuilt ?? 0,
+                        Length = (double)(yacht.Specification?.Length ?? 0m),
+                        Guests = yacht.Specification?.Guests ?? 0,
+                        Cabins = yacht.Specification?.Cabins ?? 0,
+                        Type = yacht.Specification?.Type ?? ""
+                    }
+                };
+
+                var (isDup, score, matchedFields, existingYacht) = await deduplicationService.CheckDuplicateAsync(yachtInput);
+
+                if (isDup)
+                {
+                    // Log the duplicate into database
+                    var yachtDup = new YachtDuplicateLog
+                    {
+                        YachtName = yacht.Name,
+                        ConfidenceScore = score,
+                        MatchedFields = string.Join(", ", matchedFields),
+                        DateDetected = DateTime.UtcNow,
+                        OriginalYacht = existingYacht!,
+                        DuplicateYacht = JsonConvert.SerializeObject(yacht)
+                    };
+
+                    duplicates.Add(yachtDup);
+                    workUnit.YachtDuplicateRepository.Insert(yachtDup);
+                }
+                else
+                {
+                    workUnit.YachtRepository.Insert(yacht);
+                }
+            }
+            workUnit.Save();
+
+            if(duplicates.Count() > 0)
+            {
+                return BadRequest(new { Message = "Failed to insert the following yachts.", Yachts = duplicates });
+            }
+            else
+            {
+                return Ok(new { Message = "Yachts processed successfully." });
+            }
+        }
+
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpGet]
+        [Route("GetDuplicates")]
+        public IActionResult GetDuplicates()
+        {
+            try
+            {
+                var sql = "SELECT * FROM YachtDuplicateLogs";
+                return Ok(workUnit.YachtRepository.ExecuteSqlQuery<YachtDuplicateLog>(sql));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpDelete]
+        [Route("DeleteDuplicate")]
+        public IActionResult DeleteDuplicate(Guid Id)
+        {
+            try
+            {
+                var sql = "SELECT * FROM YachtDuplicateLogs WHERE ";
+                workUnit.YachtDuplicateRepository.Delete(Id);
+                workUnit.Save();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

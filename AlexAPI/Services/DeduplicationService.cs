@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AlexAPI.Models;  // Using the model namespace
-using CsvHelper;
-using CsvHelper.Configuration;
+﻿using AlexAPI.Models;  // Using the model namespace
 using FuzzySharp;
 using Microsoft.EntityFrameworkCore;
 using AlexAPI.Data;
@@ -75,49 +66,11 @@ namespace AlexAPI.Services
 
                 if (score >= 85)
                 {
-                    await LogDuplicateAsync(newYacht, reasonList);
                     return (true, score, reasonList, yacht);
                 }
             }
 
             return (false, 0, new List<string>(), null);
-        }
-
-        private async Task LogDuplicateAsync(YachtInputModel duplicate, List<string> reasons)
-        {
-            var log = new DuplicateYachtLog
-            {
-                Name = duplicate.Name,
-                ConflictFields = string.Join(", ", reasons),
-                DateFlagged = DateTime.UtcNow
-            };
-
-            _context.DuplicateYachtLog.Add(log);
-            await _context.SaveChangesAsync();
-
-            using var writer = new StreamWriter("duplicates.csv", append: true);
-            using var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                HasHeaderRecord = false
-            });
-
-            csv.WriteField(log.Name);
-            csv.WriteField(log.ConflictFields);
-            csv.WriteField(log.DateFlagged);
-            csv.NextRecord();
-        }
-
-        // CSV generator method for duplicate reports
-        // Using YachtDuplicateReport from AlexAPI.Models
-        public string GenerateCsv(List<YachtDuplicateReport> duplicates)
-        {
-            var sb = new StringBuilder();
-            sb.AppendLine("Name,ConfidenceScore,MatchedFields");
-            foreach (var dup in duplicates)
-            {
-                sb.AppendLine($"\"{dup.Name}\",{dup.ConfidenceScore},\"{dup.MatchedFields}\"");
-            }
-            return sb.ToString();
         }
     }
 
