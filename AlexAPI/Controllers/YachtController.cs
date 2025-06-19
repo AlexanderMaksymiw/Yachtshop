@@ -17,6 +17,7 @@ using System.Text;
 using Newtonsoft.Json;
 using CsvHelper;
 using Azure.Identity;
+using System.Reflection.Metadata.Ecma335;
 
 namespace AlexAPI.Controllers
 {
@@ -420,7 +421,6 @@ namespace AlexAPI.Controllers
                 var resultYachts = yachtDict.Values.ToList();
                 // Filter yachts based on access requirement and user role
                 var filteredYachts = resultYachts
-                    .Where(y => !y.RequiresUserAccess || userHasAccess)
                     .ToList();
 
                 var yachtDtos = filteredYachts.Select(y => new YachtDto
@@ -432,7 +432,6 @@ namespace AlexAPI.Controllers
                     OnSale = y.OnSale,
                     IsFeatured = y.IsFeatured,
                     HeroImageUrl = y.HeroImageUrl,
-                    RequiresUserAccess = y.RequiresUserAccess,
                     Specification = y.Specification != null ? MapToSpecDto(y.Specification) : null,
                     Amenities = y.Amenities != null ? MapToAmenityDto(y.Amenities) : new AmenityDto
 
@@ -1696,17 +1695,22 @@ namespace AlexAPI.Controllers
 
                 var records = csvReader.GetRecords<YachtLocation>().ToList();
 
-                records.ForEach(x =>
+                foreach (var x in records)
                 {
                     var yacht = workUnit.YachtRepository.GetByID(new Guid(x.Id));
-                    yacht.Locations.Add(workUnit.LocationRepository.Get().First(y => x.LocationName == y.Name));
-                });
+                    var location = workUnit.LocationRepository.Get().FirstOrDefault(y => x.LocationName == y.Name);
+                    if(location == null)
+                    {
+                        continue;
+                    }
+                    yacht.Locations.Add(location);
+                };
                 workUnit.Save();
                 return Ok();
             }
             catch (Exception ex)
             {
-                return BadRequest(ex);
+                return BadRequest(ex.Message);
             }
         }
 

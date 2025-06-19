@@ -535,6 +535,7 @@ namespace AlexAPI.Library.Locations
                 .. AsiaLocations,
                 .. EuropeanLocations,
                 .. AntarcticaLocations,
+                .. OceaniaLocations,
             ];
 
             return result;
