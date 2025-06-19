@@ -16,6 +16,7 @@ using System.Text.RegularExpressions;
 using System.Text;
 using Newtonsoft.Json;
 using CsvHelper;
+using Azure.Identity;
 
 namespace AlexAPI.Controllers
 {
@@ -1643,86 +1644,41 @@ namespace AlexAPI.Controllers
             }
         }
 
-        [HttpGet]
-        [Route("FindMissingLocations")]
-        public IActionResult FindMissingLocations()
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
+        [HttpPost]
+        [Route("Delete")]
+        public IActionResult DeleteYacht(Guid id)
         {
-            string sql = "SELECT * FROM [Locations]";
-            var result = workUnit.YachtRepository.ExecuteSqlQuery<Location>(sql);
-            var missingLocations = new List<Location>();
-            LocationHelper.SouthAmericaLocations.ForEach(l =>
+            try
             {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.IndianOceanLocations.ForEach(l =>
+                workUnit.YachtRepository.Delete(id);
+                workUnit.Save();
+                ftpService.DeleteDirectory($"Yacht/{id}");
+                return Ok();
+            }
+            catch (Exception ex)
             {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.MediterraneanLocations.ForEach(l =>
-            {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.MiddleEastLocations.ForEach(l =>
-            {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.NorthAmericaLocations.ForEach(l =>
-            {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.OceaniaLocations.ForEach(l =>
-            {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.AntarcticaLocations.ForEach(l =>
-            {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.EuropeanLocations.ForEach(l =>
-            {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.AsiaLocations.ForEach(l =>
-            {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            LocationHelper.CaribbeanLocations.ForEach(l =>
-            {
-                if (!result.Select(x => x.Name).Contains(l.Name))
-                {
-                    missingLocations.Add(l);
-                }
-            });
-            missingLocations.ForEach(l => workUnit.LocationRepository.Insert(l));
+                return BadRequest(ex);
+            }
+        }
 
-            return Ok(missingLocations);
+        [HttpGet]
+        [Route("UploadLocations")]
+        public IActionResult UploadLocations()
+        {
+            try
+            {
+                LocationHelper.GetAllLocations().ForEach(x =>
+                {
+                    workUnit.LocationRepository.Insert(x);
+                });
+                workUnit.Save();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost]
@@ -1746,25 +1702,6 @@ namespace AlexAPI.Controllers
                     yacht.Locations.Add(workUnit.LocationRepository.Get().First(y => x.LocationName == y.Name));
                 });
                 workUnit.Save();
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex);
-            }
-        }
-
-
-        [Roles(UserRoles.Admin, UserRoles.Broker)]
-        [HttpPost]
-        [Route("Delete")]
-        public IActionResult DeleteYacht(Guid id)
-        {
-            try
-            {
-                workUnit.YachtRepository.Delete(id);
-                workUnit.Save();
-                ftpService.DeleteDirectory($"Yacht/{id}");
                 return Ok();
             }
             catch (Exception ex)

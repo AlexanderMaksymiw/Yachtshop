@@ -12,7 +12,8 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
-
+                    new Location { Name = "Mediterranean", Latitude = 35m, Longitude = 20m },
+                    new Location { Name = "France", Latitude = 46.6m, Longitude = 1.89m },
                     new Location { Name = "Menorca", Latitude = 40.0156m, Longitude = 4.1550m },
                     new Location { Name = "Ibiza", Latitude = 38.9067m, Longitude = 1.4200m },
                     new Location { Name = "Mallorca", Latitude = 39.6953m, Longitude = 3.0176m },
@@ -163,6 +164,7 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
+                    new Location { Name = "Egypt & Red Sea", Latitude = 25.59m, Longitude = 34.17m },
                     new Location { Name = "Masirah Island", Latitude = 20.4833m, Longitude = 58.8667m },
                     new Location { Name = "Bani Khalid", Latitude = 22.5667m, Longitude = 58.6833m },
                     new Location { Name = "Manama", Latitude = 26.2167m, Longitude = 50.5833m },
@@ -194,6 +196,7 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
+                    new Location { Name = "Indian Ocean", Latitude = -10m, Longitude = 70m },
                     new Location { Name = "South Africa", Latitude = -30.5595m, Longitude = 22.9375m },
                     new Location { Name = "Mozambique", Latitude = -18.6657m, Longitude = 35.5296m },
                     new Location { Name = "India", Latitude = 20.5937m, Longitude = 78.9629m },
@@ -222,6 +225,8 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
+                    new Location { Name = "Raja Ampat", Latitude = -0.71m, Longitude = 130.3m },
+                    new Location { Name = "Asia", Latitude = 51.21m, Longitude = 89.23m },
                     new Location { Name = "Andaman Sea", Latitude = 10.0m, Longitude = 95.0m },
                     new Location { Name = "Cambodia", Latitude = 12.5657m, Longitude = 104.9910m },
                     new Location { Name = "China", Latitude = 35.8617m, Longitude = 104.1954m },
@@ -253,6 +258,8 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
+                    new Location { Name = "Central America", Latitude = -30.29m, Longitude = 153.13m },
+                    new Location { Name = "Mexico", Latitude = 23.66m, Longitude = -102.01m },
                     new Location { Name = "Bocas del Toro Islands", Latitude = 9.3333m, Longitude = -82.2500m },
                     new Location { Name = "Baja California", Latitude = 30.0m, Longitude = -115.0m },
                     new Location { Name = "Napa Valley", Latitude = 38.5025m, Longitude = -122.2654m },
@@ -293,6 +300,7 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
+                    new Location { Name = "South America", Latitude = -21m, Longitude = -61m },
                     new Location { Name = "Panama", Latitude = 8.5375m, Longitude = -80.7821m },
                     new Location { Name = "Belize", Latitude = 17.1899m, Longitude = -88.4976m },
                     new Location { Name = "Costa Rica", Latitude = 9.7489m, Longitude = -83.7534m },
@@ -318,6 +326,7 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
+                    new Location { Name = "Whitsundays", Latitude = -20.31m, Longitude = 149.01m },
                     new Location { Name = "Micronesia", Latitude = 7.4255m, Longitude = 150.5508m },
                     new Location { Name = "Bora Bora", Latitude = -16.5000m, Longitude = -151.7415m },
                     new Location { Name = "The Kimberley", Latitude = -15.0m, Longitude = 128.0m },
@@ -364,6 +373,13 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
+                    new Location { Name = "Caribbean", Latitude = 18.4m, Longitude = -75m },
+                    new Location { Name = "Antigua", Latitude = 17.1m, Longitude = -61.79m },
+                    new Location { Name = "Bahamas", Latitude = 24.77m, Longitude = -78m },
+                    new Location { Name = "Saint Martin", Latitude = 18.08m, Longitude = -63.05m },
+                    new Location { Name = "St Barts", Latitude = 17.9m, Longitude = -62.83m },
+                    new Location { Name = "Virgin Islands", Latitude = 17.79m, Longitude = -64.71m },
+                    new Location { Name = "Bermuda", Latitude = 32.3m, Longitude = -64.76m },
                     new Location { Name = "St Thomas", Latitude = 18.3370m, Longitude = -64.9307m },
                     new Location { Name = "St John", Latitude = 18.3200m, Longitude = -64.7006m },
                     new Location { Name = "St Croix", Latitude = 17.7450m, Longitude = -64.7391m },
@@ -479,6 +495,7 @@ namespace AlexAPI.Library.Locations
             {
                 return new List<Location>
                 {
+                    new Location { Name = "Antarctica", Latitude = -72.84m, Longitude = 0m },
                     new Location { Name = "South Shetland Islands", Latitude = -62.0000m, Longitude = -58.0000m },
                     new Location { Name = "Weddell Sea", Latitude = -73.0000m, Longitude = -45.0000m },
                     new Location { Name = "Ross Sea", Latitude = -75.0000m, Longitude = 175.0000m },
