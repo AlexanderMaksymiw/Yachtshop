@@ -1837,13 +1837,12 @@ namespace AlexAPI.Controllers
         }
 
         [Roles(UserRoles.Admin, UserRoles.Broker)]
-        [HttpDelete]
+        [HttpPost]
         [Route("DeleteDuplicate")]
         public IActionResult DeleteDuplicate(Guid Id)
         {
             try
             {
-                var sql = "SELECT * FROM YachtDuplicateLogs WHERE ";
                 workUnit.YachtDuplicateRepository.Delete(Id);
                 workUnit.Save();
                 return Ok();
