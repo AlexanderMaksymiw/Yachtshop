@@ -1643,6 +1643,88 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [HttpGet]
+        [Route("FindMissingLocations")]
+        public IActionResult FindMissingLocations()
+        {
+            string sql = "SELECT * FROM [Locations]";
+            var result = workUnit.YachtRepository.ExecuteSqlQuery<Location>(sql);
+            var missingLocations = new List<Location>();
+            LocationHelper.SouthAmericaLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.IndianOceanLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.MediterraneanLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.MiddleEastLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.NorthAmericaLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.OceaniaLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.AntarcticaLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.EuropeanLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.AsiaLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            LocationHelper.CaribbeanLocations.ForEach(l =>
+            {
+                if (!result.Select(x => x.Name).Contains(l.Name))
+                {
+                    missingLocations.Add(l);
+                }
+            });
+            missingLocations.ForEach(l => workUnit.LocationRepository.Insert(l));
+
+            return Ok(missingLocations);
+        }
+
         [HttpPost]
         [Route("YachtLocationUpdate")]
         public IActionResult YachtLoationUpdate(IFormFile csv)
@@ -1660,7 +1742,7 @@ namespace AlexAPI.Controllers
 
                 records.ForEach(x =>
                 {
-                    var yacht = workUnit.YachtRepository.GetByID(x.Id);
+                    var yacht = workUnit.YachtRepository.GetByID(new Guid(x.Id));
                     yacht.Locations.Add(workUnit.LocationRepository.Get().First(y => x.LocationName == y.Name));
                 });
                 workUnit.Save();
