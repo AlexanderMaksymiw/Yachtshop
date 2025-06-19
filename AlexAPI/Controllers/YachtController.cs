@@ -1578,68 +1578,60 @@ namespace AlexAPI.Controllers
             }
         }
 
+        [Roles(UserRoles.Admin, UserRoles.Broker)]
         [HttpPost]
         [Route("UpsertYachts")]
         public async Task<IActionResult> UpsertYachts([FromBody] Yacht[] yachts)
         {
-            try
+            foreach (var yacht in yachts)
             {
-                var duplicatesToLog = new List<YachtDuplicate>();
-
-                foreach (var yacht in yachts)
+                // Map to input model for deduplication
+                var yachtInput = new YachtInputModel
                 {
-                    var yachtInput = new YachtInputModel
+                    Name = yacht.Name,
+                    Specification = new SpecificationInputModel
                     {
-                        Name = yacht.Name,
-                        Specification = new SpecificationInputModel
-                        {
-                            Builder = yacht.Specification?.Builder ?? "",
-                            YearBuilt = yacht.Specification?.YearBuilt ?? 0,
-                            Length = (double)(yacht.Specification?.Length ?? 0m),
-                            Guests = yacht.Specification?.Guests ?? 0,
-                            Cabins = yacht.Specification?.Cabins ?? 0,
-                            Type = yacht.Specification?.Type ?? ""
-                        }
+                        Builder = yacht.Specification?.Builder ?? "",
+                        YearBuilt = yacht.Specification?.YearBuilt ?? 0,
+                        Length = (double)(yacht.Specification?.Length ?? 0m),
+                        Guests = yacht.Specification?.Guests ?? 0,
+                        Cabins = yacht.Specification?.Cabins ?? 0,
+                        Type = yacht.Specification?.Type ?? ""
+                    }
+                };
+
+                var (isDup, score, matchedFields, existingYacht) = await deduplicationService.CheckDuplicateAsync(yachtInput);
+
+                if (isDup)
+                {
+                    // Log the duplicate into database
+                    var yachtDup = new YachtDuplicate
+                    {
+                        YachtName = yacht.Name,
+                        ConfidenceScore = score,
+                        MatchedFields = string.Join(", ", matchedFields),
+                        DateDetected = DateTime.UtcNow,
+                        OriginalYachtId = existingYacht?.Id,
+                        IncomingYachtData = JsonConvert.SerializeObject(yacht)
                     };
 
-                    var (isDup, score, matchedFields, existingYacht) = await deduplicationService.CheckDuplicateAsync(yachtInput);
-
-                    if (isDup)
-                    {
-                        duplicatesToLog.Add(new YachtDuplicate
-                        {
-                            YachtName = yacht.Name,
-                            ConfidenceScore = score,
-                            MatchedFields = string.Join(", ", matchedFields),
-                            DateDetected = DateTime.UtcNow,
-                            OriginalYachtId = existingYacht?.Id,
-                            IncomingYachtData = JsonConvert.SerializeObject(yacht)
-                        });
-                    }
-
-                    if (yacht.Specification == null)
-                    {
-                        yacht.Specification = new Specification();
-                    }
-
-                    if (yacht.Id == Guid.Empty)
-                        workUnit.YachtRepository.Insert(yacht);
-                    else
-                        workUnit.YachtRepository.Update(yacht);
+                    workUnit.YachtDuplicateRepository.Insert(yachtDup);
                 }
 
-                foreach (var dup in duplicatesToLog)
-                    workUnit.YachtDuplicateRepository.Insert(dup);
-
-                await workUnit.SaveChangesAsync();
-
-                return Ok(new { Message = "Yachts processed successfully. Duplicates have been logged." });
+                // Proceed with insert or update
+                if (yacht.Id == Guid.Empty)
+                {
+                    workUnit.YachtRepository.Insert(yacht);
+                }
+                else
+                {
+                    workUnit.YachtRepository.Update(yacht);
+                }
             }
-            catch (Exception ex)
-            {
-                // Log ex here if you have a logger
-                return StatusCode(500, new { error = ex.Message, stackTrace = ex.StackTrace });
-            }
+
+            await workUnit.SaveChangesAsync();
+
+            return Ok(new { Message = "Yachts processed successfully. Duplicates have been logged." });
         }
 
 
